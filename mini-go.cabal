@@ -2,16 +2,16 @@ cabal-version: 3.8
 
 name: mini-go
 
-version: 0.1.0.0
+version: 0.2.0.0
 
 synopsis: Mini Go parser and interpreter
 
 description:
     Mini Go parser and interpreter
 
-homepage: https://github.com/AzimMuradov/fp2022-haskell/tree/master/Go
+homepage: https://github.com/AzimMuradov/mini-go
 
-bug-reports: https://github.com/AzimMuradov/fp2022-haskell/issues
+bug-reports: https://github.com/AzimMuradov/mini-go/issues
 
 license: Apache-2.0
 
@@ -21,7 +21,7 @@ author: Azim Muradov
 
 maintainer: azim.muradov.dev@gmail.com
 
-copyright: Copyright © 2022 Azim Muradov
+copyright: Copyright © 2022-2023 Azim Muradov
 
 category: Language
 
