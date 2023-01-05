@@ -36,9 +36,10 @@ jobs:
         with:
           fail-on: warning
       - name: Check for Ormolu formatting
-        uses: mrkkrp/ormolu-action@v7
+        uses: mrkkrp/ormolu-action@v9
         with:
           pattern: "**/*.hs"
+          respect-cabal-files: false
       - name: Update
         run: cabal update
       - name: Build
