@@ -1,10 +1,9 @@
 name: build
 
 on:
+  push:
   pull_request:
     branches: ["master"]
-  push:
-    branches: ["master", "mini-go"]
   workflow_dispatch:
 
 jobs:
@@ -21,10 +20,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Detect latest language
-        run: |
-          ./detect_latest.sh >> $GITHUB_ENV
-          echo "${{ env.latest }}"
       - name: Set up Haskell
         uses: haskell/actions/setup@v2
         with:
@@ -39,26 +34,18 @@ jobs:
       - name: Run HLint
         uses: haskell/actions/hlint-run@v2
         with:
-          path: ${{ env.latest }}
           fail-on: warning
-      # - name: Check for Ormolu formatting
-      #   uses: mrkkrp/ormolu-action@v7
-      #   with:
-      #     pattern: "${{ env.latest }}/**/*.hs"
+      - name: Check for Ormolu formatting
+        uses: mrkkrp/ormolu-action@v7
+        with:
+          pattern: "**/*.hs"
+      - name: Update
+        run: cabal update
       - name: Build
-        run: |
-          cd ${{ env.latest }}
-          cabal update
-          cabal build
+        run: cabal build
       - name: Test
-        run: |
-          cd ${{ env.latest }}
-          cabal update
-          cabal test
+        run: cabal test
       - name: Integration Test
-        run: |
-          cd ${{ env.latest }}
-          cabal update
-          ./test-integration/test.sh
+        run: ./test-integration/test.sh
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

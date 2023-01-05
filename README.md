@@ -1,38 +1,43 @@
-# ФП 2022. Репо для домашек на языке Haskell
+## An implementation of Go mini-language
 
-Домашки по курсу ФП 2022 на языке Haskell оформлять **в виде пулл-реквестов к этому репо**.
+**License**: APACHE LICENSE, VERSION 2.0
 
-В директории `/Template` лежит шаблон-скелет, его нужно скопипастить и исправить под свои нужды:
-- переименовать нужные файлы под свой мини-язык;
-- пофикисить имя автора и т.п.
-- ну и сделать реализацию с тестами.
-
-Ожидается примерно следующая структура репозитория
-- `/Template` -- шаблон проекта домашки, который редактирует только препод;
-- `/CSharpExc` -- реализация мини-С# c исключениями, на основе шаблона `/Template`;
-- `/Java` -- реализация мини-Java, снова на основе шаблона `/Template`;
-- и т.д.
-
-Для Merge Requests (a.k.a. pull requests) настроен CI, который смотрит в какой директории (проекте) произошли последние изменения,
-и именно в этой директории запускает сборку и тесты.
-Например, если поменялся файл `Template/lib/Parser.hs`, то запустятся все тесты из директории проекта `Template`,
-а тесты из проекта `Java` запускаться не будут.
-
-**Генерация документации будет, но позже.**
-
-<!-- TODO : Также CI собирает документацию к миниязыку и выкладывает её в https://kakadu.github.io/fp2022/doc/LANGUAGE (например, в https://kakadu.github.io/fp2021/doc/Template) -->
-
-###### N.B. Не удаляйте директорию Template. Это шаблон!
+**Author**: Azim Muradov, azim.muradov.dev@gmail.com
 
 
-### Подготовка окружения
+### Features:
 
-- Cabal : 3.0+
-- GHC : 8.8+
+Project parts:
 
-### Приёмка задач
+|     To do      | In progress |     Done     |
+| :------------: | :---------: | :----------: |
+| pretty printer |    docs     |     CLI      |
+|   unit tests   |             |     AST      |
+|                |             |    lexer     |
+|                |             |    parser    |
+|                |             | analyzed AST |
+|                |             |   analyzer   |
+|                |             | interpreter  |
 
-Решения принимаются в виде пулл-реквестов к этому репо. Пулл-реквесты должны
-* проходить CI
-  * в том числе линтер (за исключением некоторых ложных срабатываний)
-* в названии надо указать задачу, которую реализовывали, идентифицировать себя и курс
+
+#### Done:
+
+- `int`, `bool`, `string` support
+- `void` support
+- multidimensional arrays support
+- function literals (anonymous functions)
+- operators (arithmetic, logic, comparison)
+- `if`, `else`
+- `for`
+- recursion, mutual recursion
+- function definitions
+- variable declarations
+- variable assignments
+- globals support
+- closures (including mutable closures)
+- short variable declarations
+- increment, decrement
+- parser, lexer
+- analyzer (check for name collision or missing names, type checker, const expressions converters (w/o `const` keyword))
+- interpreter
+- several stdlib functions (`len`, `print`, `println`, `panic`)
