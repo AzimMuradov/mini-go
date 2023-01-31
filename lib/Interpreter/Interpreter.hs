@@ -8,18 +8,19 @@ import qualified Analyzer.AnalyzedAst as Ast
 import Control.Lens (Ixed (ix), (%~), (&), (.~), (^.), (^?!))
 import Control.Monad (foldM, void, (>=>))
 import Control.Monad.Except (MonadError (throwError), liftEither, runExceptT)
+import Control.Monad.Extra (fromMaybeM)
 import Control.Monad.ST (runST)
 import Control.Monad.State (MonadState (get), StateT (runStateT), modify)
 import Data.Either.Combinators (leftToMaybe, mapBoth)
 import Data.Functor (($>))
 import Data.List.Extra ((!?))
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
 import Data.STRef (newSTRef, readSTRef)
 import Data.Text (Text, pack)
 import qualified Data.Text as T
 import Interpreter.Result
 import Interpreter.Runtime
+import MaybeVoid (MaybeVoid (..), maybeVoid)
 import qualified PrimitiveValue as PV
 import StdLib (stdLibFunctionsMap)
 
@@ -43,30 +44,30 @@ interpretProgram :: Ast.Program -> Result s ()
 interpretProgram (Ast.Program tlVarDecls tlFuncDefs) = do
   fs' <- fs
   modify $ funcs .~ fs'
-  (main, mainFs) <- unwrapJust $ fs' Map.!? "main"
+  let (main, mainFs) = fs' Map.! "main"
   main' <- lift2 $ readSTRef main
   void $ interpretFunc main' mainFs []
   where
     globalScope = do
-      vsRefs <- mapM (interpretExpr' >=> lift2 . newSTRef) (Ast.value <$> tlVarDecls)
-      return $ Scope $ Map.fromList $ (Ast.identifier <$> tlVarDecls) `zip` vsRefs
+      vsRefs <- mapM (interpretExpr' >=> lift2 . newSTRef) (Ast.varValue <$> tlVarDecls)
+      return $ Scope $ Map.fromList $ (Ast.varName <$> tlVarDecls) `zip` vsRefs
 
     fs = do
       globalScope' <- globalScope
       fsRefs <- lift2 $ mapM newSTRef (Ast.func <$> tlFuncDefs)
       return $ Map.fromList $ (Ast.funcName <$> tlFuncDefs) `zip` ((,globalScope') <$> fsRefs)
 
-interpretFunc :: Ast.Function -> Scope s -> [RuntimeValue s] -> Result s (Maybe (RuntimeValue s))
-interpretFunc (Ast.OrdinaryFunction params body voidMark) (Scope ns) args = do
+interpretFunc :: Ast.Function -> Scope s -> [RuntimeValue s] -> Result s (MaybeVoid (RuntimeValue s))
+interpretFunc (Ast.FuncOrdinary (Ast.OrdinaryFunction params body voidMark)) (Scope ns) args = do
   args' <- lift2 $ mapM newSTRef (Map.fromList $ params `zip` args)
   res <- interpretFuncBlock (FuncScope [Scope args', Scope ns]) body
   case (res, voidMark) of
     (Ret val, _) -> return val
-    (Unit, Ast.VoidFunc) -> return Nothing
+    (Unit, Ast.VoidFunc) -> return Void
     (Unit, Ast.NonVoidFunc) -> throwError NoReturn
     _ -> throwError UnexpectedError
-interpretFunc (Ast.StdLibFunction name) _ args = do
-  func <- unwrapJust $ stdLibFunctionsMap Map.!? name
+interpretFunc (Ast.FuncStdLib name) _ args = do
+  let func = stdLibFunctionsMap Map.! name
   (res, out) <- liftEither $ func $ evalRuntimeValue <$> args
   modify $ accumulatedOutput %~ (out :)
   return $ unevalRuntimeValue <$> res
@@ -98,8 +99,8 @@ interpretStmt = \case
   Ast.StmtBlock block -> interpretBlock emptyScope block
   Ast.StmtSimple simpleStmt -> interpretStmtSimple simpleStmt
 
-interpretStmtReturn :: Maybe Ast.Expression -> Result s (StmtResult s)
-interpretStmtReturn = maybe (return $ Ret Nothing) (fmap Ret . interpretExpr)
+interpretStmtReturn :: MaybeVoid Ast.Expression -> Result s (StmtResult s)
+interpretStmtReturn = maybeVoid (return $ Ret Void) (fmap Ret . interpretExpr)
 
 interpretStmtForGoTo :: Ast.ForGoTo -> Result s (StmtResult s)
 interpretStmtForGoTo = \case
@@ -107,28 +108,22 @@ interpretStmtForGoTo = \case
   Ast.Continue -> return Continue
 
 interpretStmtFor :: Ast.For -> Result s (StmtResult s)
-interpretStmtFor (Ast.For kind block) = case kind of
-  Ast.ForKindFor pre cond post -> for pre cond post block
-  Ast.ForKindWhile cond -> for Nothing (Just cond) Nothing block
-  Ast.ForKindLoop -> for Nothing Nothing Nothing block
+interpretStmtFor (Ast.For (Ast.ForHead pre cond post) block) = do
+  modify $ pushBlockScope emptyScope
+  mapM_ interpretStmtSimple pre
+  res <- for
+  modify popBlockScope
+  return res
   where
-    for :: Maybe Ast.SimpleStmt -> Maybe Ast.Expression -> Maybe Ast.SimpleStmt -> Ast.Block -> Result s (StmtResult s)
-    for pre cond post b = do
-      modify $ pushBlockScope emptyScope
-      mapM_ interpretStmtSimple pre
-      res <- for' cond post b
-      modify popBlockScope
-      return res
-    for' :: Maybe Ast.Expression -> Maybe Ast.SimpleStmt -> Ast.Block -> Result s (StmtResult s)
-    for' cond post b = do
-      cond' <- fromMaybe True <$> mapM interpretBoolExpr cond
+    for = do
+      cond' <- fromMaybeM (return True) $ mapM interpretBoolExpr cond
       if cond'
         then do
-          res <- interpretBlock emptyScope b
+          res <- interpretBlock emptyScope block
           case res of
-            Unit -> mapM_ interpretStmtSimple post >> for' cond post b
+            Unit -> mapM_ interpretStmtSimple post >> for
             Break -> mapM_ interpretStmtSimple post $> Unit
-            Continue -> mapM_ interpretStmtSimple post >> for' cond post b
+            Continue -> mapM_ interpretStmtSimple post >> for
             Ret _ -> mapM_ interpretStmtSimple post $> res
         else return Unit
 
@@ -136,14 +131,19 @@ interpretStmtVarDecl :: Ast.VarDecl -> Result s (StmtResult s)
 interpretStmtVarDecl (Ast.VarDecl name expr) = (interpretExpr' expr >>= addNewVar name) $> Unit
 
 interpretStmtIfElse :: Ast.IfElse -> Result s (StmtResult s)
-interpretStmtIfElse (Ast.IfElse condition block elseStmt) = do
+interpretStmtIfElse (Ast.IfElse preStmt condition block elseStmt) = do
+  modify $ pushBlockScope emptyScope
+  mapM_ interpretStmtSimple preStmt
   cond <- interpretBoolExpr condition
-  if cond
-    then interpretBlock emptyScope block
-    else case elseStmt of
-      Ast.NoElse -> return Unit
-      Ast.Else block' -> interpretBlock emptyScope block'
-      Ast.Elif ifElse -> interpretStmtIfElse ifElse
+  res <-
+    if cond
+      then interpretBlock emptyScope block
+      else case elseStmt of
+        Ast.NoElse -> return Unit
+        Ast.Else block' -> interpretBlock emptyScope block'
+        Ast.Elif ifElse -> interpretStmtIfElse ifElse
+  modify popBlockScope
+  return res
 
 interpretStmtSimple :: Ast.SimpleStmt -> Result s (StmtResult s)
 interpretStmtSimple = \case
@@ -189,12 +189,12 @@ data StmtResult s
   | -- | Result of the @continue@ statement.
     Continue
   | -- | Result of the @return@ statement.
-    Ret (Maybe (RuntimeValue s))
+    Ret (MaybeVoid (RuntimeValue s))
   deriving (Eq)
 
 ------------------------------------------------------Expressions-------------------------------------------------------
 
-interpretExpr :: Ast.Expression -> Result s (Maybe (RuntimeValue s))
+interpretExpr :: Ast.Expression -> Result s (MaybeVoid (RuntimeValue s))
 interpretExpr = \case
   Ast.ExprValue value -> interpretExprValue value
   Ast.ExprIdentifier name -> interpretExprIdentifier name
@@ -203,55 +203,54 @@ interpretExpr = \case
   Ast.ExprArrayAccessByIndex arr i -> interpretExprArrayAccessByIndex arr i
   Ast.ExprFuncCall func args -> interpretExprFuncCall func args
 
-interpretExprValue :: Ast.Value -> Result s (Maybe (RuntimeValue s))
+interpretExprValue :: Ast.Value -> Result s (MaybeVoid (RuntimeValue s))
 interpretExprValue = \case
   Ast.ValInt v -> return' $ ValInt v
   Ast.ValBool v -> return' $ ValBool v
   Ast.ValString v -> return' $ ValString v
   Ast.ValArray es -> mapM interpretExpr' es >>= return' . ValArray
-  Ast.ValFunction v ->
-    Just <$> do
-      env <- get
-      return $ ValFunction v $ flattenFuncScope (env ^?! (funcScopes . ix 0))
+  Ast.ValFunction v -> do
+    env <- get
+    return' $ ValFunction v $ flattenFuncScope (env ^?! (funcScopes . ix 0))
   where
-    return' v = return $ Just v
+    return' v = return $ NonVoid v
 
-interpretExprIdentifier :: Ast.Identifier -> Result s (Maybe (RuntimeValue s))
-interpretExprIdentifier name = Just <$> getVarValue name
+interpretExprIdentifier :: Ast.Identifier -> Result s (MaybeVoid (RuntimeValue s))
+interpretExprIdentifier name = NonVoid <$> getVarValue name
 
-interpretExprUnaryOp :: Ast.UnaryOp -> Ast.Expression -> Result s (Maybe (RuntimeValue s))
+interpretExprUnaryOp :: Ast.UnaryOp -> Ast.Expression -> Result s (MaybeVoid (RuntimeValue s))
 interpretExprUnaryOp unOp expr =
   interpretExpr' expr >>= valueToPrimitive >>= liftPV . PV.primitiveUnOpApplication unOp
 
-interpretExprBinaryOp :: Ast.BinaryOp -> Ast.Expression -> Ast.Expression -> Result s (Maybe (RuntimeValue s))
+interpretExprBinaryOp :: Ast.BinaryOp -> Ast.Expression -> Ast.Expression -> Result s (MaybeVoid (RuntimeValue s))
 interpretExprBinaryOp Ast.OrOp lhs rhs = do
   lhs' <- interpretBoolExpr lhs
   if lhs'
-    then return $ Just $ ValBool True
-    else Just . ValBool <$> interpretBoolExpr rhs
+    then return $ NonVoid $ ValBool True
+    else NonVoid . ValBool <$> interpretBoolExpr rhs
 interpretExprBinaryOp Ast.AndOp lhs rhs = do
   lhs' <- interpretBoolExpr lhs
   if not lhs'
-    then return $ Just $ ValBool False
-    else Just . ValBool <$> interpretBoolExpr rhs
+    then return $ NonVoid $ ValBool False
+    else NonVoid . ValBool <$> interpretBoolExpr rhs
 interpretExprBinaryOp binOp lhs rhs = do
   lhsVal <- interpretExpr' lhs
   rhsVal <- interpretExpr' rhs
   case binOp of
-    Ast.EqOp -> return $ Just $ ValBool $ lhsVal == rhsVal
-    Ast.NeOp -> return $ Just $ ValBool $ lhsVal /= rhsVal
+    Ast.EqOp -> return $ NonVoid $ ValBool $ lhsVal == rhsVal
+    Ast.NeOp -> return $ NonVoid $ ValBool $ lhsVal /= rhsVal
     _ -> do
       lhsPV <- valueToPrimitive lhsVal
       rhsPV <- valueToPrimitive rhsVal
       liftPV $ PV.primitiveBinOpApplication binOp lhsPV rhsPV
 
-interpretExprArrayAccessByIndex :: Ast.Expression -> Ast.Expression -> Result s (Maybe (RuntimeValue s))
+interpretExprArrayAccessByIndex :: Ast.Expression -> Ast.Expression -> Result s (MaybeVoid (RuntimeValue s))
 interpretExprArrayAccessByIndex arr i = do
   arr' <- interpretArrExpr arr
   i' <- interpretIntExpr i
-  maybe (throwError $ IndexOutOfRange i' (length arr')) (return . Just) (arr' !? i')
+  maybe (throwError $ IndexOutOfRange i' (length arr')) (return . NonVoid) (arr' !? i')
 
-interpretExprFuncCall :: Ast.Expression -> [Ast.Expression] -> Result s (Maybe (RuntimeValue s))
+interpretExprFuncCall :: Ast.Expression -> [Ast.Expression] -> Result s (MaybeVoid (RuntimeValue s))
 interpretExprFuncCall func args = do
   (func', sc) <- interpretFuncExpr func
   args' <- mapM interpretExpr' args
@@ -278,8 +277,8 @@ interpretFuncExpr = interpretExpr' >=> castToFunc
 interpretExpr' :: Ast.Expression -> Result s (RuntimeValue s)
 interpretExpr' = interpretExpr >=> unwrapJust
 
-unwrapJust :: Maybe a -> Result s a
-unwrapJust = maybe (throwError UnexpectedError) return
+unwrapJust :: MaybeVoid a -> Result s a
+unwrapJust = maybeVoid (throwError UnexpectedError) return
 
 -- ** Primitive values
 
@@ -290,17 +289,17 @@ valueToPrimitive = \case
   ValString v -> return $ PV.PrimString v
   _ -> throwError UnexpectedError
 
-liftPV :: Either PV.Err (PV.PrimitiveValue Int) -> Result s (Maybe (RuntimeValue s))
-liftPV pvRes = liftEither $ mapBoth mapErr primitiveToValue pvRes
+liftPV :: Either PV.Err (PV.PrimitiveValue Int) -> Result s (MaybeVoid (RuntimeValue s))
+liftPV pvRes = liftEither $ mapBoth mapErr (NonVoid . primitiveToValue) pvRes
   where
     mapErr = \case
       PV.MismatchedTypes -> UnexpectedError
       PV.DivisionByZero -> DivisionByZero
 
     primitiveToValue = \case
-      PV.PrimNum v -> Just $ ValInt v
-      PV.PrimBool v -> Just $ ValBool v
-      PV.PrimString v -> Just $ ValString v
+      PV.PrimNum v -> ValInt v
+      PV.PrimBool v -> ValBool v
+      PV.PrimString v -> ValString v
 
 -- ** Cast runtime values
 

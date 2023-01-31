@@ -2,7 +2,7 @@ cabal-version: 3.8
 
 name: mini-go
 
-version: 0.2.0.0
+version: 0.3.0.0
 
 synopsis: Mini Go parser and interpreter
 
@@ -60,6 +60,7 @@ library
         Interpreter.Result,
         Interpreter.Runtime,
         Interpreter.Interpreter,
+        MaybeVoid,
         StdLib,
         PrimitiveValue
 

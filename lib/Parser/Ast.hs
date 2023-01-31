@@ -1,10 +1,8 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# OPTIONS_GHC -Wno-partial-fields #-}
-
 -- | Contains all AST elements, all of these produced by the [Parser]("Parser.Parser") module.
 module Parser.Ast where
 
 import Data.Text (Text)
+import MaybeVoid (MaybeVoid)
 
 --------------------------------------------------------Program---------------------------------------------------------
 
@@ -141,17 +139,15 @@ data Type
 -- | Array type, it contains the length of the array and its elements type.
 --
 -- > [3 + 4] int
-data ArrayType = ArrayType {elementType :: Type, length :: Expression}
+data ArrayType = ArrayType {arrElementT :: Type, arrLength :: Expression}
   deriving (Show)
 
--- | Function type,
--- it contains the result of the function (which can be @void@ if the result is equal to 'Nothing')
--- and its parameters types.
+-- | Function type, it contains the result of the function and its parameters types.
 --
 -- > func (int, string) bool
 --
 -- > func ([3] int)
-data FunctionType = FunctionType {parameters :: [Type], result :: Maybe Type}
+data FunctionType = FunctionType {funcParamsTs :: [Type], funcResultT :: MaybeVoid Type}
   deriving (Show)
 
 -------------------------------------------------------Statements-------------------------------------------------------
@@ -160,8 +156,8 @@ data FunctionType = FunctionType {parameters :: [Type], result :: Maybe Type}
 
 -- | Statement.
 data Statement
-  = -- | Return statement with optional return value (in the case of 'Nothing' we assume, that it is @void@).
-    StmtReturn (Maybe Expression)
+  = -- | Return statement with optional return value.
+    StmtReturn (MaybeVoid Expression)
   | -- | For goto statement, see 'ForGoTo'.
     StmtForGoTo ForGoTo
   | -- | For statement, see 'For'.
@@ -189,35 +185,38 @@ data ForGoTo
     Continue
   deriving (Show)
 
--- | For statement, can represent any of the 3 possible @for@ kinds, see 'ForKind'.
-data For = For {forKind :: ForKind, block :: Block}
+-- | For statement, can represent any of the 3 possible @for@ kinds.
+--
+-- For kind, represents classic @for@ loop.
+--
+-- > for i := 0; i < n; i++ {
+-- >   foo(i * i);
+-- > }
+--
+-- > for ; ; {} // same as `for {}`
+--
+-- While kind, represents classic @while@ loop.
+--
+-- > for i < n {
+-- >   foo(i * i);
+-- >   i = i + 2;
+-- > }
+--
+-- Loop kind, represents endless loop (@while true@).
+--
+-- > for {
+-- >   temp := foo(i * i * i);
+-- >   if temp == 108 { break; }
+-- >   i = i + 23;
+data For = For {forHead :: ForHead, forBody :: Block}
   deriving (Show)
 
 -- | For statement, can represent any of the 3 possible @for@ kinds.
-data ForKind
-  = -- | For kind, represents classic @for@ loop.
-    --
-    -- > for i := 0; i < n; i++ {
-    -- >   foo(i * i);
-    -- > }
-    --
-    -- > for ; ; {} // same as `for {}`
-    ForKindFor {preStatement :: Maybe SimpleStmt, condition :: Maybe Expression, postStatement :: Maybe SimpleStmt}
-  | -- | While kind, represents classic @while@ loop.
-    --
-    -- > for i < n {
-    -- >   foo(i * i);
-    -- >   i = i + 2;
-    -- > }
-    ForKindWhile {whileCondition :: Expression}
-  | -- | Loop kind, represents endless loop (@while true@).
-    --
-    -- > for {
-    -- >   temp := foo(i * i * i);
-    -- >   if temp == 108 { break; }
-    -- >   i = i + 23;
-    -- > }
-    ForKindLoop
+data ForHead = ForHead
+  { forPreStmt :: Maybe SimpleStmt,
+    forCondition :: Maybe Expression,
+    forPostStmt :: Maybe SimpleStmt
+  }
   deriving (Show)
 
 -- | Var declaration.
@@ -242,8 +241,9 @@ data VarValue
 --
 -- > if true { println("hello"); }
 data IfElse = IfElse
-  { condition :: Expression,
-    block :: Block,
+  { ifPreStmt :: Maybe SimpleStmt,
+    ifCondition :: Expression,
+    ifBody :: Block,
     elseStmt :: Else
   }
   deriving (Show)
@@ -301,7 +301,7 @@ data Value
 -- > [3] int {1, 2}
 --
 -- > [10] bool {}
-data ArrayValue = ArrayValue {t :: ArrayType, elements :: [Expression]}
+data ArrayValue = ArrayValue {arrT :: ArrayType, arrElements :: [Expression]}
   deriving (Show)
 
 -- | Function value.
@@ -317,13 +317,9 @@ data FunctionValue
   deriving (Show)
 
 -- | Function representation without name.
-data Function = Function {signature :: FunctionSignature, body :: Block}
-  deriving (Show)
-
--- | Function signature,
--- it contains the result of the function (which can be @void@ if the result is equal to 'Nothing')
--- and its parameters.
-data FunctionSignature = FunctionSignature {parameters :: [(Identifier, Type)], result :: Maybe Type}
+--
+-- It contains the result of the function, its parameters, and its body.
+data Function = Function {funcParams :: [(Identifier, Type)], funcResult :: MaybeVoid Type, funcBody :: Block}
   deriving (Show)
 
 -- | Any valid identifier (e.g., @he42llo@, @_42@).

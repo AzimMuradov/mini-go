@@ -2,7 +2,7 @@
 
 module Interpreter.Result where
 
-import Analyzer.AnalyzedAst (Function (OrdinaryFunction, StdLibFunction), FunctionValue (Function, Nil), Identifier)
+import Analyzer.AnalyzedAst (Function (..), FunctionValue (Function, Nil), Identifier)
 import Control.Lens (At (at), LensLike', ix, makeLenses, (^.))
 import Control.Monad.Except (ExceptT)
 import Control.Monad.ST (ST)
@@ -161,8 +161,8 @@ instance Show RuntimeValue' where
   show (ValBool' bool) = if bool then "true" else "false"
   show (ValString' string) = unpack string
   show (ValArray' vs) = "[" <> unwords (show <$> vs) <> "]"
-  show (ValFunction' (Function OrdinaryFunction {})) = "function"
-  show (ValFunction' (Function (StdLibFunction name))) = unpack name
+  show (ValFunction' (Function (FuncOrdinary _))) = "function"
+  show (ValFunction' (Function (FuncStdLib name))) = unpack name
   show (ValFunction' Nil) = "nil"
 
 evalRuntimeValue :: RuntimeValue s -> RuntimeValue'

@@ -10,9 +10,10 @@ import Data.Function ((&))
 import Data.Functor (($>))
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
+import MaybeVoid (MaybeVoid, maybeToMaybeVoid)
 import qualified Parser.Ast as Ast
 import Parser.Lexer
-import Text.Megaparsec (MonadParsec (..), choice, eitherP, many, optional, parseMaybe, sepEndBy, some, (<|>))
+import Text.Megaparsec (MonadParsec (..), choice, eitherP, many, optional, parseMaybe, some, (<|>))
 
 ---------------------------------------------------------Parser---------------------------------------------------------
 
@@ -56,8 +57,8 @@ termExpressionP =
       Ast.ExprValue <$> valueP,
       Ast.ExprIdentifier <$> identifierP,
       Ast.ExprLenFuncCall <$ idLenFunc <*> parens expressionP,
-      Ast.ExprPrintFuncCall <$ idPrintFunc <*> listed expressionP comma,
-      Ast.ExprPrintlnFuncCall <$ idPrintlnFunc <*> listed expressionP comma,
+      Ast.ExprPrintFuncCall <$ idPrintFunc <*> listedInPar expressionP,
+      Ast.ExprPrintlnFuncCall <$ idPrintlnFunc <*> listedInPar expressionP,
       Ast.ExprPanicFuncCall <$ idPanicFunc <*> parens expressionP
     ]
 
@@ -98,7 +99,7 @@ unaryOp opSym op = Prefix $ Ast.ExprUnaryOp op <$ symbol opSym
 
 -- | Function call operator.
 funcCallOp :: Parser (Ast.Expression -> Ast.Expression)
-funcCallOp = flip Ast.ExprFuncCall <$> listed expressionP comma
+funcCallOp = flip Ast.ExprFuncCall <$> listedInPar expressionP
 
 -- | Array access by index operator.
 arrayAccessByIndexOp :: Parser (Ast.Expression -> Ast.Expression)
@@ -126,7 +127,7 @@ arrayTypeP = flip Ast.ArrayType <$> brackets expressionP <*> typeP
 
 -- | Function type parser.
 functionTypeP :: Parser Ast.FunctionType
-functionTypeP = Ast.FunctionType <$ kwFunc <*> listed typeP comma <*> optional' typeP
+functionTypeP = Ast.FunctionType <$ kwFunc <*> listedInPar typeP <*> maybeVoid typeP
 
 -------------------------------------------------------Statements-------------------------------------------------------
 
@@ -147,7 +148,7 @@ statementP =
 
 -- | Return statement parser.
 stmtReturnP :: Parser Ast.Statement
-stmtReturnP = Ast.StmtReturn <$ kwReturn <*> optional' expressionP
+stmtReturnP = Ast.StmtReturn <$ kwReturn <*> maybeVoid expressionP
 
 -- | For goto statement parser.
 stmtForGoToP :: Parser Ast.Statement
@@ -155,21 +156,18 @@ stmtForGoToP = Ast.StmtForGoTo <$> choice' [Ast.Break <$ kwBreak, Ast.Continue <
 
 -- | For statement parser.
 stmtForP :: Parser Ast.Statement
-stmtForP = Ast.StmtFor <$> (Ast.For <$ void kwFor <*> forKindP <*> blockP)
-
--- | For kind parser.
-forKindP :: Parser Ast.ForKind
-forKindP =
-  choice'
-    [ Ast.ForKindFor
-        <$> optional' simpleStmtP
-        <* semicolon
-        <*> optional' expressionP
-        <* semicolon
-        <*> optional' simpleStmtP,
-      Ast.ForKindWhile <$> expressionP,
-      return Ast.ForKindLoop
-    ]
+stmtForP = Ast.StmtFor <$> (Ast.For <$ void kwFor <*> forHead <*> blockP)
+  where
+    forHead =
+      choice'
+        [ Ast.ForHead
+            <$> optional' simpleStmtP
+            <* semicolon
+            <*> optional' expressionP
+            <* semicolon
+            <*> optional' simpleStmtP,
+          Ast.ForHead Nothing <$> optional' expressionP <*> pure Nothing
+        ]
 
 -- | Var declaration parser.
 varDeclP :: Parser Ast.VarDecl
@@ -183,7 +181,7 @@ varDeclP = kwVar $> Ast.VarDecl <*> identifierP <*> varValueP
 
 -- | If-else parser.
 ifElseP :: Parser Ast.IfElse
-ifElseP = kwIf $> Ast.IfElse <*> expressionP <*> blockP <*> elseP
+ifElseP = kwIf $> Ast.IfElse <*> optional' (simpleStmtP <* semicolon) <*> expressionP <*> blockP <*> elseP
   where
     elseP =
       choice'
@@ -241,7 +239,7 @@ valueP =
 
 -- | Array value parser.
 arrayValP :: Parser Ast.ArrayValue
-arrayValP = Ast.ArrayValue <$> arrayTypeP <*> braces (sepEndBy expressionP comma)
+arrayValP = Ast.ArrayValue <$> arrayTypeP <*> braces (listed expressionP)
 
 -- | Function value parser.
 functionValP :: Parser Ast.FunctionValue
@@ -249,14 +247,10 @@ functionValP = choice' [Ast.Nil <$ idNil, Ast.AnonymousFunction <$ kwFunc <*> fu
 
 -- | Nameless function parser.
 functionP :: Parser Ast.Function
-functionP = Ast.Function <$> functionSignatureP <*> blockP
-
--- | Function signature parser.
-functionSignatureP :: Parser Ast.FunctionSignature
-functionSignatureP = do
-  params <- listed ((,) <$> identifierP <*> typeP) comma
-  result <- optional' typeP
-  return $ Ast.FunctionSignature params result
+functionP = Ast.Function <$> params <*> result <*> blockP
+  where
+    params = listedInPar ((,) <$> identifierP <*> typeP)
+    result = maybeVoid typeP
 
 ---------------------------------------------------------Utils----------------------------------------------------------
 
@@ -273,3 +267,6 @@ eitherP' leftP = eitherP $ try leftP
 -- | Optional element parser with built-in backtracking support.
 optional' :: (MonadParsec e s m) => m a -> m (Maybe a)
 optional' = optional . try
+
+maybeVoid :: (MonadParsec e s m) => m a -> m (MaybeVoid a)
+maybeVoid = fmap maybeToMaybeVoid . optional'

@@ -6,9 +6,10 @@ module StdLib where
 import Analyzer.AnalyzedAst (Identifier)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Text (Text, append, pack)
+import Data.Text (Text, pack)
 import qualified Data.Text as T
 import Interpreter.Result (Err (Panic, UnexpectedError), ResultValue, RuntimeValue' (..))
+import MaybeVoid (MaybeVoid (NonVoid, Void))
 
 ---------------------------------------------------------StdLib---------------------------------------------------------
 
@@ -24,7 +25,7 @@ data StdLibFunction = StdLibFunction
 type StdLibFuncImpl = [RuntimeValue'] -> StdLibFuncResult
 
 -- | Convenient type alias for stdlib function result.
-type StdLibFuncResult = ResultValue (Maybe RuntimeValue', Text)
+type StdLibFuncResult = ResultValue (MaybeVoid RuntimeValue', Text)
 
 -- | All available stdlib functions.
 stdLibFunctions :: [StdLibFunction]
@@ -51,7 +52,7 @@ lenImpl args = case args of
   [ValArray' xs] -> ok $ length xs
   _ -> Left UnexpectedError
   where
-    ok int = Right (Just $ ValInt' int, "")
+    ok int = Right (NonVoid $ ValInt' int, "")
 
 -- ** @print@
 
@@ -61,7 +62,7 @@ printFunction = StdLibFunction {name = "print", impl = printImpl}
 
 -- | @print@ implementation.
 printImpl :: StdLibFuncImpl
-printImpl args = Right (Nothing, T.concat (pack . show <$> args))
+printImpl args = Right (Void, T.concat (pack . show <$> args))
 
 -- ** @println@
 
@@ -71,7 +72,7 @@ printlnFunction = StdLibFunction {name = "println", impl = printlnImpl}
 
 -- | @println@ implementation.
 printlnImpl :: StdLibFuncImpl
-printlnImpl args = Right (Nothing, append (T.unwords (pack . show <$> args)) "\n")
+printlnImpl args = Right (Void, T.unwords (pack . show <$> args) <> "\n")
 
 -- ** @panic@
 

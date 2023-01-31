@@ -1,6 +1,8 @@
 -- | Types representation during the analysis process.
 module Analyzer.AnalyzedType where
 
+import MaybeVoid (MaybeVoid)
+
 -- | Type representation during the analysis process.
 data Type
   = -- | 32-bit/64-bit (depending on the machine) integer type.
@@ -20,5 +22,5 @@ data Type
 -- | Function type,
 -- it contains the result of the function (which can be @void@ if the result is equal to 'Nothing')
 -- and its parameters types.
-data FunctionType = FunctionType {parameters :: [Type], returnType :: Maybe Type}
+data FunctionType = FunctionType {parameters :: [Type], returnType :: MaybeVoid Type}
   deriving (Show, Eq)

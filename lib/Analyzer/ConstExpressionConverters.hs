@@ -6,19 +6,20 @@ module Analyzer.ConstExpressionConverters where
 import Analyzer.AnalyzedAst (Expression (ExprValue), Value (..))
 import Analyzer.AnalyzedType (Type (..))
 import Data.Either.Extra (mapLeft)
+import MaybeVoid (MaybeVoid (..))
 import qualified Parser.Ast as Ast
 import qualified PrimitiveValue as PV
 
 -- | Simplifies expression to value expression if possible.
-simplifyConstExpr :: Ast.Expression -> Either Err (Maybe Type, Expression)
+simplifyConstExpr :: Ast.Expression -> Either Err (MaybeVoid Type, Expression)
 simplifyConstExpr expression = do
   constant <- simplifyConstExpr' expression
   case constant of
     PV.PrimNum c -> do
       c' <- convertIntegerToInt c
-      return (Just TInt, ExprValue $ ValInt c')
-    PV.PrimBool c -> return (Just TBool, ExprValue $ ValBool c)
-    PV.PrimString c -> return (Just TString, ExprValue $ ValString c)
+      return (NonVoid TInt, ExprValue $ ValInt c')
+    PV.PrimBool c -> return (NonVoid TBool, ExprValue $ ValBool c)
+    PV.PrimString c -> return (NonVoid TString, ExprValue $ ValString c)
 
 -- | Simplifies expression to int if possible.
 simplifyConstIntExpr :: Ast.Expression -> Either Err Int

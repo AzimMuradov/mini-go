@@ -40,13 +40,13 @@ jobs:
         with:
           pattern: "**/*.hs"
           respect-cabal-files: false
-      - name: Update
+      - name: Update packages list
         run: cabal update
-      - name: Build
+      - name: Build project
         run: cabal build
-      - name: Test
+      - name: Run unit tests
         run: cabal test
-      - name: Integration Test
+      - name: Run integration tests
         run: ./test-integration/test.sh
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

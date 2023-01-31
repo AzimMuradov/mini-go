@@ -1,5 +1,4 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module Analyzer.AnalyzedAst
   ( module Analyzer.AnalyzedAst,
@@ -11,6 +10,7 @@ module Analyzer.AnalyzedAst
 where
 
 import Data.Text (Text)
+import MaybeVoid (MaybeVoid)
 import Parser.Ast (BinaryOp (..), ForGoTo (..), IncDec (..), UnaryOp (..))
 
 --------------------------------------------------------Program---------------------------------------------------------
@@ -38,7 +38,7 @@ data Expression
 -------------------------------------------------------Statements-------------------------------------------------------
 
 data Statement
-  = StmtReturn (Maybe Expression)
+  = StmtReturn (MaybeVoid Expression)
   | StmtForGoTo ForGoTo
   | StmtFor For
   | StmtVarDecl VarDecl
@@ -49,25 +49,23 @@ data Statement
 
 type Block = [Statement]
 
-data For = For {kind :: ForKind, block :: Block}
+data For = For {forHead :: ForHead, forBody :: Block}
   deriving (Show)
 
-data ForKind
-  = ForKindFor
-      { preStmt :: Maybe SimpleStmt,
-        condition :: Maybe Expression,
-        postStmt :: Maybe SimpleStmt
-      }
-  | ForKindWhile {whileCondition :: Expression}
-  | ForKindLoop
+data ForHead = ForHead
+  { forPreStmt :: Maybe SimpleStmt,
+    forCondition :: Maybe Expression,
+    forPostStmt :: Maybe SimpleStmt
+  }
   deriving (Show)
 
-data VarDecl = VarDecl {identifier :: Identifier, value :: Expression}
+data VarDecl = VarDecl {varName :: Identifier, varValue :: Expression}
   deriving (Show)
 
 data IfElse = IfElse
-  { condition :: Expression,
-    block :: Block,
+  { ifPreStmt :: Maybe SimpleStmt,
+    ifCondition :: Expression,
+    ifBody :: Block,
     elseStmt :: Else
   }
   deriving (Show)
@@ -103,8 +101,11 @@ data FunctionValue
   deriving (Show)
 
 data Function
-  = OrdinaryFunction {parameters :: [Identifier], body :: Block, voidMark :: VoidMark}
-  | StdLibFunction Identifier
+  = FuncOrdinary OrdinaryFunction
+  | FuncStdLib Identifier
+  deriving (Show)
+
+data OrdinaryFunction = OrdinaryFunction {funcParams :: [Identifier], funcBody :: Block, funcVoidMark :: VoidMark}
   deriving (Show)
 
 data VoidMark = VoidFunc | NonVoidFunc
