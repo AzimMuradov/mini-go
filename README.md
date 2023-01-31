@@ -1,43 +1,39 @@
-## An implementation of Go mini-language
-
-**License**: APACHE LICENSE, VERSION 2.0
+# An implementation of Go mini-language
 
 **Author**: Azim Muradov, azim.muradov.dev@gmail.com
 
-
-### Features:
-
-Project parts:
-
-|     To do      | In progress |     Done     |
-| :------------: | :---------: | :----------: |
-| pretty printer |    docs     |     CLI      |
-|   unit tests   |             |     AST      |
-|                |             |    lexer     |
-|                |             |    parser    |
-|                |             | analyzed AST |
-|                |             |   analyzer   |
-|                |             | interpreter  |
+**License**: APACHE LICENSE, VERSION 2.0
 
 
-#### Done:
+## Project parts:
 
-- `int`, `bool`, `string` support
+- application
+  - **CLI app** built with [optparse-applicative](https://github.com/pcapriotti/optparse-applicative)
+- library
+  - **parser** and **lexer** implemented using [megaparsec](https://github.com/mrkkrp/megaparsec)
+  - **analyzer**
+    - check for name collision or missing names
+    - type checker
+    - const expressions converters (w/o `const` keyword)
+  - **interpreter**
+
+
+## Features:
+
+- supported types: `int`, `bool`, `string`, multidimensional arrays, functions
 - `void` support
-- multidimensional arrays support
-- function literals (anonymous functions)
-- operators (arithmetic, logic, comparison)
-- `if`, `else`
-- `for`
-- recursion, mutual recursion
-- function definitions
-- variable declarations
-- variable assignments
-- globals support
-- closures (including mutable closures)
-- short variable declarations
-- increment, decrement
-- parser, lexer
-- analyzer (check for name collision or missing names, type checker, const expressions converters (w/o `const` keyword))
-- interpreter
-- several stdlib functions (`len`, `print`, `println`, `panic`)
+- function literals (anonymous functions), closures (including mutable closures) support
+- operators (arithmetic, logic, comparison) support
+- `if`, `else`, `for` support
+- recursion, mutual recursion support
+- function definitions, globals support
+- variable declarations, variable assignments, short variable declarations (`:=`) support
+- increment, decrement support
+- supported stdlib functions: `len`, `print`, `println`, `panic`
+
+
+## TODO:
+
+- add pretty printer
+- add missing docs
+- add unit tests
