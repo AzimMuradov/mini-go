@@ -1,0 +1,359 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">PrimitiveValue</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Parser.Ast.html"><span class="hs-identifier">Parser.Ast</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ast</span></span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- | Primitive value.</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">data</span><span> </span><span id="PrimitiveValue"><span class="annot"><a href="PrimitiveValue.html#PrimitiveValue"><span class="hs-identifier hs-var">PrimitiveValue</span></a></span></span><span> </span><span id="local-6989586621679166999"><span class="annot"><a href="#local-6989586621679166999"><span class="hs-identifier hs-type">num</span></a></span></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | Number primitive.</span><span>
+</span><span id="line-9"></span><span>    </span><span id="PrimNum"><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span></span><span> </span><span class="annot"><a href="#local-6989586621679166999"><span class="hs-identifier hs-type">num</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Boolean primitive.</span><span>
+</span><span id="line-11"></span><span>    </span><span id="PrimBool"><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | String primitive.</span><span>
+</span><span id="line-13"></span><span>    </span><span id="PrimString"><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-var">PrimString</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679166953"><span id="local-6989586621679166955"><span id="local-6989586621679166966"><span class="annot"><span class="annottext">Int -&gt; PrimitiveValue num -&gt; ShowS
+forall num. Show num =&gt; Int -&gt; PrimitiveValue num -&gt; ShowS
+forall num. Show num =&gt; [PrimitiveValue num] -&gt; ShowS
+forall num. Show num =&gt; PrimitiveValue num -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [PrimitiveValue num] -&gt; ShowS
+$cshowList :: forall num. Show num =&gt; [PrimitiveValue num] -&gt; ShowS
+show :: PrimitiveValue num -&gt; String
+$cshow :: forall num. Show num =&gt; PrimitiveValue num -&gt; String
+showsPrec :: Int -&gt; PrimitiveValue num -&gt; ShowS
+$cshowsPrec :: forall num. Show num =&gt; Int -&gt; PrimitiveValue num -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679166943"><span id="local-6989586621679166950"><span class="annot"><span class="annottext">PrimitiveValue num -&gt; PrimitiveValue num -&gt; Bool
+forall num.
+Eq num =&gt;
+PrimitiveValue num -&gt; PrimitiveValue num -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: PrimitiveValue num -&gt; PrimitiveValue num -&gt; Bool
+$c/= :: forall num.
+Eq num =&gt;
+PrimitiveValue num -&gt; PrimitiveValue num -&gt; Bool
+== :: PrimitiveValue num -&gt; PrimitiveValue num -&gt; Bool
+$c== :: forall num.
+Eq num =&gt;
+PrimitiveValue num -&gt; PrimitiveValue num -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- | Represents an unsuccessful operation application on primitive values.</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">data</span><span> </span><span id="Err"><span class="annot"><a href="PrimitiveValue.html#Err"><span class="hs-identifier hs-var">Err</span></a></span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | Mismatched types error.</span><span>
+</span><span id="line-19"></span><span>    </span><span id="MismatchedTypes"><span class="annot"><a href="PrimitiveValue.html#MismatchedTypes"><span class="hs-identifier hs-var">MismatchedTypes</span></a></span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Division by 0 error.</span><span>
+</span><span id="line-21"></span><span>    </span><span id="DivisionByZero"><span class="annot"><a href="PrimitiveValue.html#DivisionByZero"><span class="hs-identifier hs-var">DivisionByZero</span></a></span></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span id="local-6989586621679166997"><span class="annot"><a href="PrimitiveValue.html#primitiveUnOpApplication"><span class="hs-identifier hs-type">primitiveUnOpApplication</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679166997"><span class="hs-identifier hs-type">num</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Parser.Ast.html#UnaryOp"><span class="hs-identifier hs-type">Ast.UnaryOp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimitiveValue"><span class="hs-identifier hs-type">PrimitiveValue</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679166997"><span class="hs-identifier hs-type">num</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="PrimitiveValue.html#Err"><span class="hs-identifier hs-type">Err</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="PrimitiveValue.html#PrimitiveValue"><span class="hs-identifier hs-type">PrimitiveValue</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679166997"><span class="hs-identifier hs-type">num</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-24"></span><span id="primitiveUnOpApplication"><span class="annot"><span class="annottext">primitiveUnOpApplication :: forall num.
+Integral num =&gt;
+UnaryOp -&gt; PrimitiveValue num -&gt; Either Err (PrimitiveValue num)
+</span><a href="PrimitiveValue.html#primitiveUnOpApplication"><span class="hs-identifier hs-var hs-var">primitiveUnOpApplication</span></a></span></span><span> </span><span id="local-6989586621679166928"><span class="annot"><span class="annottext">UnaryOp
+</span><a href="#local-6989586621679166928"><span class="hs-identifier hs-var">unOp</span></a></span></span><span> </span><span id="local-6989586621679166927"><span class="annot"><span class="annottext">PrimitiveValue num
+</span><a href="#local-6989586621679166927"><span class="hs-identifier hs-var">constant</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="#local-6989586621679166928"><span class="hs-identifier hs-var">unOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimitiveValue num
+</span><a href="#local-6989586621679166927"><span class="hs-identifier hs-var">constant</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="Parser.Ast.html#UnaryPlusOp"><span class="hs-identifier hs-var">Ast.UnaryPlusOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166925"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166925"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166925"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="Parser.Ast.html#UnaryMinusOp"><span class="hs-identifier hs-var">Ast.UnaryMinusOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166923"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166923"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166923"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="Parser.Ast.html#NotOp"><span class="hs-identifier hs-var">Ast.NotOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166921"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166921"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166921"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="annottext">(UnaryOp, PrimitiveValue num)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Err
+</span><a href="PrimitiveValue.html#MismatchedTypes"><span class="hs-identifier hs-var">MismatchedTypes</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span id="local-6989586621679166983"><span class="annot"><a href="PrimitiveValue.html#primitiveBinOpApplication"><span class="hs-identifier hs-type">primitiveBinOpApplication</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679166983"><span class="hs-identifier hs-type">num</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Parser.Ast.html#BinaryOp"><span class="hs-identifier hs-type">Ast.BinaryOp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimitiveValue"><span class="hs-identifier hs-type">PrimitiveValue</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679166983"><span class="hs-identifier hs-type">num</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimitiveValue"><span class="hs-identifier hs-type">PrimitiveValue</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679166983"><span class="hs-identifier hs-type">num</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="PrimitiveValue.html#Err"><span class="hs-identifier hs-type">Err</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="PrimitiveValue.html#PrimitiveValue"><span class="hs-identifier hs-type">PrimitiveValue</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679166983"><span class="hs-identifier hs-type">num</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-31"></span><span id="primitiveBinOpApplication"><span class="annot"><span class="annottext">primitiveBinOpApplication :: forall num.
+Integral num =&gt;
+BinaryOp
+-&gt; PrimitiveValue num
+-&gt; PrimitiveValue num
+-&gt; Either Err (PrimitiveValue num)
+</span><a href="PrimitiveValue.html#primitiveBinOpApplication"><span class="hs-identifier hs-var hs-var">primitiveBinOpApplication</span></a></span></span><span> </span><span id="local-6989586621679166863"><span class="annot"><span class="annottext">BinaryOp
+</span><a href="#local-6989586621679166863"><span class="hs-identifier hs-var">binOp</span></a></span></span><span> </span><span id="local-6989586621679166862"><span class="annot"><span class="annottext">PrimitiveValue num
+</span><a href="#local-6989586621679166862"><span class="hs-identifier hs-var">lhs</span></a></span></span><span> </span><span id="local-6989586621679166861"><span class="annot"><span class="annottext">PrimitiveValue num
+</span><a href="#local-6989586621679166861"><span class="hs-identifier hs-var">rhs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="#local-6989586621679166863"><span class="hs-identifier hs-var">binOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimitiveValue num
+</span><a href="#local-6989586621679166862"><span class="hs-identifier hs-var">lhs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimitiveValue num
+</span><a href="#local-6989586621679166861"><span class="hs-identifier hs-var">rhs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-comment">-- Number</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#EqOp"><span class="hs-identifier hs-var">Ast.EqOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166859"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166859"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166858"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166858"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166859"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166858"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#NeOp"><span class="hs-identifier hs-var">Ast.NeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166856"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166856"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166855"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166855"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166856"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166855"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#LeOp"><span class="hs-identifier hs-var">Ast.LeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166852"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166852"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166851"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166851"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166852"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166851"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#LtOp"><span class="hs-identifier hs-var">Ast.LtOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166848"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166848"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166847"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166847"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166848"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166847"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MeOp"><span class="hs-identifier hs-var">Ast.MeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166844"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166844"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166843"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166843"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166844"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166843"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MtOp"><span class="hs-identifier hs-var">Ast.MtOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166841"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166841"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166840"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166840"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166841"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166840"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#PlusOp"><span class="hs-identifier hs-var">Ast.PlusOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166837"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166837"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166836"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166836"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166837"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166836"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MinusOp"><span class="hs-identifier hs-var">Ast.MinusOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166833"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166833"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166832"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166832"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166833"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166832"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MultOp"><span class="hs-identifier hs-var">Ast.MultOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166830"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166830"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166829"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166829"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166830"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166829"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#DivOp"><span class="hs-identifier hs-var">Ast.DivOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166826"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166826"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166825"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166825"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166825"><span class="hs-identifier hs-var">rhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Err
+</span><a href="PrimitiveValue.html#DivisionByZero"><span class="hs-identifier hs-var">DivisionByZero</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166826"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166825"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#ModOp"><span class="hs-identifier hs-var">Ast.ModOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166822"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166822"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-type">PrimNum</span></a></span><span> </span><span id="local-6989586621679166821"><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166821"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166821"><span class="hs-identifier hs-var">rhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Err
+</span><a href="PrimitiveValue.html#DivisionByZero"><span class="hs-identifier hs-var">DivisionByZero</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. num -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimNum"><span class="hs-identifier hs-var">PrimNum</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166822"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mod`</span></span><span> </span><span class="annot"><span class="annottext">num
+</span><a href="#local-6989586621679166821"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-comment">-- Boolean</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#OrOp"><span class="hs-identifier hs-var">Ast.OrOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166818"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166818"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166817"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166817"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166818"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166817"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#AndOp"><span class="hs-identifier hs-var">Ast.AndOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166814"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166814"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166813"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166813"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166814"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166813"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#EqOp"><span class="hs-identifier hs-var">Ast.EqOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166811"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166811"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166810"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166810"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166811"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166810"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#NeOp"><span class="hs-identifier hs-var">Ast.NeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166809"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166809"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-type">PrimBool</span></a></span><span> </span><span id="local-6989586621679166808"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166808"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166809"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679166808"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-comment">-- String</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#EqOp"><span class="hs-identifier hs-var">Ast.EqOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166807"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166807"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166806"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166806"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166807"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166806"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#NeOp"><span class="hs-identifier hs-var">Ast.NeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166805"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166805"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166804"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166804"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166805"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166804"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#LeOp"><span class="hs-identifier hs-var">Ast.LeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166803"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166803"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166802"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166802"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166803"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166802"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#LtOp"><span class="hs-identifier hs-var">Ast.LtOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166801"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166801"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166800"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166800"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166801"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166800"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MeOp"><span class="hs-identifier hs-var">Ast.MeOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166799"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166799"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166798"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166798"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166799"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166798"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MtOp"><span class="hs-identifier hs-var">Ast.MtOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166797"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166797"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166796"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166796"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Bool -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimBool"><span class="hs-identifier hs-var">PrimBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166797"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166796"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#PlusOp"><span class="hs-identifier hs-var">Ast.PlusOp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166795"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166795"><span class="hs-identifier hs-var">lhs'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-type">PrimString</span></a></span><span> </span><span id="local-6989586621679166794"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166794"><span class="hs-identifier hs-var">rhs'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall num. Text -&gt; PrimitiveValue num
+</span><a href="PrimitiveValue.html#PrimString"><span class="hs-identifier hs-var">PrimString</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166795"><span class="hs-identifier hs-var">lhs'</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166794"><span class="hs-identifier hs-var">rhs'</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">(BinaryOp, PrimitiveValue num, PrimitiveValue num)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Err
+</span><a href="PrimitiveValue.html#MismatchedTypes"><span class="hs-identifier hs-var">MismatchedTypes</span></a></span><span>
+</span><span id="line-58"></span></pre></body></html>

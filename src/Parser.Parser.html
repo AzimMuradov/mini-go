@@ -1,0 +1,789 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | Provides parser that produces [AST](&quot;Parser.Ast&quot;).</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Parser.Parser</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">liftM2</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">void</span></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Combinators.Expr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Operator</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">makeExprParser</span></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">lefts</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">rights</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">($&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">catMaybes</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="MaybeVoid.html"><span class="hs-identifier">MaybeVoid</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="MaybeVoid.html#MaybeVoid"><span class="hs-identifier">MaybeVoid</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="MaybeVoid.html#maybeToMaybeVoid"><span class="hs-identifier">maybeToMaybeVoid</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Parser.Ast.html"><span class="hs-identifier">Parser.Ast</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ast</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Parser.Lexer.html"><span class="hs-identifier">Parser.Lexer</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.Megaparsec</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadParsec</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">choice</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">eitherP</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">many</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">optional</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">parseMaybe</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">some</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-comment">---------------------------------------------------------Parser---------------------------------------------------------</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- * Parser</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | Parser entry point.</span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Parser.Parser.html#parse"><span class="hs-identifier hs-type">parse</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Parser.Ast.html#Program"><span class="hs-identifier hs-type">Ast.Program</span></a></span><span>
+</span><span id="line-24"></span><span id="parse"><span class="annot"><span class="annottext">parse :: Text -&gt; Maybe Program
+</span><a href="Parser.Parser.html#parse"><span class="hs-identifier hs-var hs-var">parse</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall e s a. (Ord e, Stream s) =&gt; Parsec e s a -&gt; s -&gt; Maybe a
+</span><span class="hs-identifier hs-var">parseMaybe</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Parser ()
+</span><a href="Parser.Lexer.html#sc"><span class="hs-identifier hs-var">sc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f b
+</span><span class="hs-operator hs-var">*&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Program
+</span><a href="Parser.Parser.html#programP"><span class="hs-identifier hs-var">programP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *). MonadParsec e s m =&gt; m ()
+</span><span class="hs-identifier hs-var">eof</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">--------------------------------------------------------Program---------------------------------------------------------</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- * Program (top-level) parsers</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Program parser.</span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Parser.Parser.html#programP"><span class="hs-identifier hs-type">programP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Program"><span class="hs-identifier hs-type">Ast.Program</span></a></span><span>
+</span><span id="line-32"></span><span id="programP"><span class="annot"><span class="annottext">programP :: ParsecT Void Text Identity Program
+</span><a href="Parser.Parser.html#programP"><span class="hs-identifier hs-var hs-var">programP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621679167883"><span class="annot"><span class="annottext">[Either VarDecl FunctionDef]
+</span><a href="#local-6989586621679167883"><span class="hs-identifier hs-var">decls</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">many</span></span><span> </span><span class="annot"><span class="annottext">Parser (Either VarDecl FunctionDef)
+</span><a href="Parser.Parser.html#topLevelDeclP"><span class="hs-identifier hs-var">topLevelDeclP</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><a href="Parser.Ast.html#Program"><span class="hs-identifier hs-type">Ast.Program</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">topLevelVarDecls :: [VarDecl]
+</span><a href="Parser.Ast.html#topLevelVarDecls"><span class="hs-identifier hs-var">Ast.topLevelVarDecls</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a b. [Either a b] -&gt; [a]
+</span><span class="hs-identifier hs-var">lefts</span></span><span> </span><span class="annot"><span class="annottext">[Either VarDecl FunctionDef]
+</span><a href="#local-6989586621679167883"><span class="hs-identifier hs-var">decls</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">topLevelFunctionDefs :: [FunctionDef]
+</span><a href="Parser.Ast.html#topLevelFunctionDefs"><span class="hs-identifier hs-var">Ast.topLevelFunctionDefs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a b. [Either a b] -&gt; [b]
+</span><span class="hs-identifier hs-var">rights</span></span><span> </span><span class="annot"><span class="annottext">[Either VarDecl FunctionDef]
+</span><a href="#local-6989586621679167883"><span class="hs-identifier hs-var">decls</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- | Top-level declaration parser, it parses either var declaration or function definition.</span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Parser.Parser.html#topLevelDeclP"><span class="hs-identifier hs-type">topLevelDeclP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Parser.Ast.html#VarDecl"><span class="hs-identifier hs-type">Ast.VarDecl</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#FunctionDef"><span class="hs-identifier hs-type">Ast.FunctionDef</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span id="topLevelDeclP"><span class="annot"><span class="annottext">topLevelDeclP :: Parser (Either VarDecl FunctionDef)
+</span><a href="Parser.Parser.html#topLevelDeclP"><span class="hs-identifier hs-var hs-var">topLevelDeclP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a b.
+MonadParsec e s m =&gt;
+m a -&gt; m b -&gt; m (Either a b)
+</span><a href="Parser.Parser.html#eitherP%27"><span class="hs-identifier hs-var">eitherP'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ParsecT Void Text Identity VarDecl
+</span><a href="Parser.Parser.html#varDeclP"><span class="hs-identifier hs-var">varDeclP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#semicolon"><span class="hs-identifier hs-var">semicolon</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Parser FunctionDef
+</span><a href="Parser.Parser.html#functionDefP"><span class="hs-identifier hs-var">functionDefP</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- | Function definition parser.</span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Parser.Parser.html#functionDefP"><span class="hs-identifier hs-type">functionDefP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#FunctionDef"><span class="hs-identifier hs-type">Ast.FunctionDef</span></a></span><span>
+</span><span id="line-42"></span><span id="functionDefP"><span class="annot"><span class="annottext">functionDefP :: Parser FunctionDef
+</span><a href="Parser.Parser.html#functionDefP"><span class="hs-identifier hs-var hs-var">functionDefP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Function -&gt; FunctionDef
+</span><a href="Parser.Ast.html#FunctionDef"><span class="hs-identifier hs-var">Ast.FunctionDef</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwFunc"><span class="hs-identifier hs-var">kwFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Function
+</span><a href="Parser.Parser.html#functionP"><span class="hs-identifier hs-var">functionP</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">------------------------------------------------------Expressions-------------------------------------------------------</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- * Expressions parsers</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | Expression parser.</span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-type">expressionP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span>
+</span><span id="line-50"></span><span id="expressionP"><span class="annot"><span class="annottext">expressionP :: Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var hs-var">expressionP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+m a -&gt; [[Operator m a]] -&gt; m a
+</span><span class="hs-identifier hs-var">makeExprParser</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a1 a2 r.
+Monad m =&gt;
+(a1 -&gt; a2 -&gt; r) -&gt; m a1 -&gt; m a2 -&gt; m r
+</span><span class="hs-identifier hs-var">liftM2</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="annot"><span class="annottext">forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">(&amp;)</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#termExpressionP"><span class="hs-identifier hs-var">termExpressionP</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">many</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ParsecT Void Text Identity (Expression -&gt; Expression)
+</span><a href="Parser.Parser.html#funcCallOp"><span class="hs-identifier hs-var">funcCallOp</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity (Expression -&gt; Expression)
+</span><a href="Parser.Parser.html#arrayAccessByIndexOp"><span class="hs-identifier hs-var">arrayAccessByIndexOp</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[[Operator (ParsecT Void Text Identity) Expression]]
+</span><a href="Parser.Parser.html#opsTable"><span class="hs-identifier hs-var">opsTable</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | Terminal expression parser, it's terminal in terms of 'makeExprParser' parser.</span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Parser.Parser.html#termExpressionP"><span class="hs-identifier hs-type">termExpressionP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span>
+</span><span id="line-54"></span><span id="termExpressionP"><span class="annot"><span class="annottext">termExpressionP :: Parser Expression
+</span><a href="Parser.Parser.html#termExpressionP"><span class="hs-identifier hs-var hs-var">termExpressionP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#parens"><span class="hs-identifier hs-var">parens</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">Value -&gt; Expression
+</span><a href="Parser.Ast.html#ExprValue"><span class="hs-identifier hs-var">Ast.ExprValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Value
+</span><a href="Parser.Parser.html#valueP"><span class="hs-identifier hs-var">valueP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Expression
+</span><a href="Parser.Ast.html#ExprIdentifier"><span class="hs-identifier hs-var">Ast.ExprIdentifier</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-59"></span><span>      </span><span class="annot"><span class="annottext">Expression -&gt; Expression
+</span><a href="Parser.Ast.html#ExprLenFuncCall"><span class="hs-identifier hs-var">Ast.ExprLenFuncCall</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idLenFunc"><span class="hs-identifier hs-var">idLenFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#parens"><span class="hs-identifier hs-var">parens</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-60"></span><span>      </span><span class="annot"><span class="annottext">[Expression] -&gt; Expression
+</span><a href="Parser.Ast.html#ExprPrintFuncCall"><span class="hs-identifier hs-var">Ast.ExprPrintFuncCall</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idPrintFunc"><span class="hs-identifier hs-var">idPrintFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser [a]
+</span><a href="Parser.Lexer.html#listedInPar"><span class="hs-identifier hs-var">listedInPar</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-61"></span><span>      </span><span class="annot"><span class="annottext">[Expression] -&gt; Expression
+</span><a href="Parser.Ast.html#ExprPrintlnFuncCall"><span class="hs-identifier hs-var">Ast.ExprPrintlnFuncCall</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idPrintlnFunc"><span class="hs-identifier hs-var">idPrintlnFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser [a]
+</span><a href="Parser.Lexer.html#listedInPar"><span class="hs-identifier hs-var">listedInPar</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-62"></span><span>      </span><span class="annot"><span class="annottext">Expression -&gt; Expression
+</span><a href="Parser.Ast.html#ExprPanicFuncCall"><span class="hs-identifier hs-var">Ast.ExprPanicFuncCall</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idPanicFunc"><span class="hs-identifier hs-var">idPanicFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#parens"><span class="hs-identifier hs-var">parens</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- | Operators table, contains all operator parsers and their fixity.</span><span>
+</span><span id="line-66"></span><span class="annot"><a href="Parser.Parser.html#opsTable"><span class="hs-identifier hs-type">opsTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Operator</span></span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><span id="line-67"></span><span id="opsTable"><span class="annot"><span class="annottext">opsTable :: [[Operator (ParsecT Void Text Identity) Expression]]
+</span><a href="Parser.Parser.html#opsTable"><span class="hs-identifier hs-var hs-var">opsTable</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-special">[</span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Text -&gt; UnaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#unaryOp"><span class="hs-identifier hs-var">unaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;+&quot;</span></span><span> </span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="Parser.Ast.html#UnaryPlusOp"><span class="hs-identifier hs-var">Ast.UnaryPlusOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-69"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; UnaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#unaryOp"><span class="hs-identifier hs-var">unaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="Parser.Ast.html#UnaryMinusOp"><span class="hs-identifier hs-var">Ast.UnaryMinusOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; UnaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#unaryOp"><span class="hs-identifier hs-var">unaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;!&quot;</span></span><span> </span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="Parser.Ast.html#NotOp"><span class="hs-identifier hs-var">Ast.NotOp</span></a></span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;*&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MultOp"><span class="hs-identifier hs-var">Ast.MultOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-73"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;/&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#DivOp"><span class="hs-identifier hs-var">Ast.DivOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-74"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;%&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#ModOp"><span class="hs-identifier hs-var">Ast.ModOp</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;+&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#PlusOp"><span class="hs-identifier hs-var">Ast.PlusOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-77"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MinusOp"><span class="hs-identifier hs-var">Ast.MinusOp</span></a></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;==&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#EqOp"><span class="hs-identifier hs-var">Ast.EqOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-80"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;!=&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#NeOp"><span class="hs-identifier hs-var">Ast.NeOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-81"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&lt;=&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#LeOp"><span class="hs-identifier hs-var">Ast.LeOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&lt;&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#LtOp"><span class="hs-identifier hs-var">Ast.LtOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-83"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&gt;=&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MeOp"><span class="hs-identifier hs-var">Ast.MeOp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-84"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&gt;&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#MtOp"><span class="hs-identifier hs-var">Ast.MtOp</span></a></span><span>
+</span><span id="line-85"></span><span>    </span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&amp;&amp;&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#AndOp"><span class="hs-identifier hs-var">Ast.AndOp</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var">binaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;||&quot;</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="Parser.Ast.html#OrOp"><span class="hs-identifier hs-var">Ast.OrOp</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-special">]</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- ** Operators</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- | Utility function, that takes operator symbol, binary operator constructor and gives new binary operator in return.</span><span>
+</span><span id="line-93"></span><span class="annot"><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-type">binaryOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Parser.Ast.html#BinaryOp"><span class="hs-identifier hs-type">Ast.BinaryOp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Operator</span></span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span>
+</span><span id="line-94"></span><span id="binaryOp"><span class="annot"><span class="annottext">binaryOp :: Text
+-&gt; BinaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#binaryOp"><span class="hs-identifier hs-var hs-var">binaryOp</span></a></span></span><span> </span><span id="local-6989586621679167830"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679167830"><span class="hs-identifier hs-var">opSym</span></a></span></span><span> </span><span id="local-6989586621679167829"><span class="annot"><span class="annottext">BinaryOp
+</span><a href="#local-6989586621679167829"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. m (a -&gt; a -&gt; a) -&gt; Operator m a
+</span><span class="hs-identifier hs-var">InfixL</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">BinaryOp -&gt; Expression -&gt; Expression -&gt; Expression
+</span><a href="Parser.Ast.html#ExprBinaryOp"><span class="hs-identifier hs-var">Ast.ExprBinaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">BinaryOp
+</span><a href="#local-6989586621679167829"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679167830"><span class="hs-identifier hs-var">opSym</span></a></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- | Utility function, that takes operator symbol, unary operator constructor and gives new unary operator in return.</span><span>
+</span><span id="line-97"></span><span class="annot"><a href="Parser.Parser.html#unaryOp"><span class="hs-identifier hs-type">unaryOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Parser.Ast.html#UnaryOp"><span class="hs-identifier hs-type">Ast.UnaryOp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Operator</span></span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span>
+</span><span id="line-98"></span><span id="unaryOp"><span class="annot"><span class="annottext">unaryOp :: Text -&gt; UnaryOp -&gt; Operator (ParsecT Void Text Identity) Expression
+</span><a href="Parser.Parser.html#unaryOp"><span class="hs-identifier hs-var hs-var">unaryOp</span></a></span></span><span> </span><span id="local-6989586621679167825"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679167825"><span class="hs-identifier hs-var">opSym</span></a></span></span><span> </span><span id="local-6989586621679167824"><span class="annot"><span class="annottext">UnaryOp
+</span><a href="#local-6989586621679167824"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. m (a -&gt; a) -&gt; Operator m a
+</span><span class="hs-identifier hs-var">Prefix</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UnaryOp -&gt; Expression -&gt; Expression
+</span><a href="Parser.Ast.html#ExprUnaryOp"><span class="hs-identifier hs-var">Ast.ExprUnaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">UnaryOp
+</span><a href="#local-6989586621679167824"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679167825"><span class="hs-identifier hs-var">opSym</span></a></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- | Function call operator.</span><span>
+</span><span id="line-101"></span><span class="annot"><a href="Parser.Parser.html#funcCallOp"><span class="hs-identifier hs-type">funcCallOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span id="funcCallOp"><span class="annot"><span class="annottext">funcCallOp :: ParsecT Void Text Identity (Expression -&gt; Expression)
+</span><a href="Parser.Parser.html#funcCallOp"><span class="hs-identifier hs-var hs-var">funcCallOp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Expression -&gt; [Expression] -&gt; Expression
+</span><a href="Parser.Ast.html#ExprFuncCall"><span class="hs-identifier hs-var">Ast.ExprFuncCall</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser [a]
+</span><a href="Parser.Lexer.html#listedInPar"><span class="hs-identifier hs-var">listedInPar</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- | Array access by index operator.</span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Parser.Parser.html#arrayAccessByIndexOp"><span class="hs-identifier hs-type">arrayAccessByIndexOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Parser.Ast.html#Expression"><span class="hs-identifier hs-type">Ast.Expression</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span id="arrayAccessByIndexOp"><span class="annot"><span class="annottext">arrayAccessByIndexOp :: ParsecT Void Text Identity (Expression -&gt; Expression)
+</span><a href="Parser.Parser.html#arrayAccessByIndexOp"><span class="hs-identifier hs-var hs-var">arrayAccessByIndexOp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Expression -&gt; Expression -&gt; Expression
+</span><a href="Parser.Ast.html#ExprArrayAccessByIndex"><span class="hs-identifier hs-var">Ast.ExprArrayAccessByIndex</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#brackets"><span class="hs-identifier hs-var">brackets</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="hs-comment">---------------------------------------------------------Types----------------------------------------------------------</span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- * Types parsers</span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- | Type parser.</span><span>
+</span><span id="line-113"></span><span class="annot"><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-type">typeP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Type"><span class="hs-identifier hs-type">Ast.Type</span></a></span><span>
+</span><span id="line-114"></span><span id="typeP"><span class="annot"><span class="annottext">typeP :: Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var hs-var">typeP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-115"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-116"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="Parser.Ast.html#TInt"><span class="hs-identifier hs-var">Ast.TInt</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idInt"><span class="hs-identifier hs-var">idInt</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-117"></span><span>      </span><span class="annot"><span class="annottext">Type
+</span><a href="Parser.Ast.html#TBool"><span class="hs-identifier hs-var">Ast.TBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idBool"><span class="hs-identifier hs-var">idBool</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-118"></span><span>      </span><span class="annot"><span class="annottext">Type
+</span><a href="Parser.Ast.html#TString"><span class="hs-identifier hs-var">Ast.TString</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idString"><span class="hs-identifier hs-var">idString</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-119"></span><span>      </span><span class="annot"><span class="annottext">ArrayType -&gt; Type
+</span><a href="Parser.Ast.html#TArray"><span class="hs-identifier hs-var">Ast.TArray</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser ArrayType
+</span><a href="Parser.Parser.html#arrayTypeP"><span class="hs-identifier hs-var">arrayTypeP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-120"></span><span>      </span><span class="annot"><span class="annottext">FunctionType -&gt; Type
+</span><a href="Parser.Ast.html#TFunction"><span class="hs-identifier hs-var">Ast.TFunction</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser FunctionType
+</span><a href="Parser.Parser.html#functionTypeP"><span class="hs-identifier hs-var">functionTypeP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-121"></span><span>      </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#parens"><span class="hs-identifier hs-var">parens</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span>
+</span><span id="line-122"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- | Array type parser.</span><span>
+</span><span id="line-125"></span><span class="annot"><a href="Parser.Parser.html#arrayTypeP"><span class="hs-identifier hs-type">arrayTypeP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#ArrayType"><span class="hs-identifier hs-type">Ast.ArrayType</span></a></span><span>
+</span><span id="line-126"></span><span id="arrayTypeP"><span class="annot"><span class="annottext">arrayTypeP :: Parser ArrayType
+</span><a href="Parser.Parser.html#arrayTypeP"><span class="hs-identifier hs-var hs-var">arrayTypeP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Type -&gt; Expression -&gt; ArrayType
+</span><a href="Parser.Ast.html#ArrayType"><span class="hs-identifier hs-var">Ast.ArrayType</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#brackets"><span class="hs-identifier hs-var">brackets</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span>
+</span><span id="line-127"></span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- | Function type parser.</span><span>
+</span><span id="line-129"></span><span class="annot"><a href="Parser.Parser.html#functionTypeP"><span class="hs-identifier hs-type">functionTypeP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#FunctionType"><span class="hs-identifier hs-type">Ast.FunctionType</span></a></span><span>
+</span><span id="line-130"></span><span id="functionTypeP"><span class="annot"><span class="annottext">functionTypeP :: Parser FunctionType
+</span><a href="Parser.Parser.html#functionTypeP"><span class="hs-identifier hs-var hs-var">functionTypeP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Type] -&gt; MaybeVoid Type -&gt; FunctionType
+</span><a href="Parser.Ast.html#FunctionType"><span class="hs-identifier hs-var">Ast.FunctionType</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwFunc"><span class="hs-identifier hs-var">kwFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser [a]
+</span><a href="Parser.Lexer.html#listedInPar"><span class="hs-identifier hs-var">listedInPar</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a.
+MonadParsec e s m =&gt;
+m a -&gt; m (MaybeVoid a)
+</span><a href="Parser.Parser.html#maybeVoid"><span class="hs-identifier hs-var">maybeVoid</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">-------------------------------------------------------Statements-------------------------------------------------------</span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- * Statements parsers</span><span>
+</span><span id="line-135"></span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- | Statement parser.</span><span>
+</span><span id="line-137"></span><span class="annot"><a href="Parser.Parser.html#statementP"><span class="hs-identifier hs-type">statementP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Statement"><span class="hs-identifier hs-type">Ast.Statement</span></a></span><span>
+</span><span id="line-138"></span><span id="statementP"><span class="annot"><span class="annottext">statementP :: Parser Statement
+</span><a href="Parser.Parser.html#statementP"><span class="hs-identifier hs-var hs-var">statementP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-139"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-140"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Parser Statement
+</span><a href="Parser.Parser.html#stmtReturnP"><span class="hs-identifier hs-var">stmtReturnP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-141"></span><span>      </span><span class="annot"><span class="annottext">Parser Statement
+</span><a href="Parser.Parser.html#stmtForGoToP"><span class="hs-identifier hs-var">stmtForGoToP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-142"></span><span>      </span><span class="annot"><span class="annottext">Parser Statement
+</span><a href="Parser.Parser.html#stmtForP"><span class="hs-identifier hs-var">stmtForP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-143"></span><span>      </span><span class="annot"><span class="annottext">VarDecl -&gt; Statement
+</span><a href="Parser.Ast.html#StmtVarDecl"><span class="hs-identifier hs-var">Ast.StmtVarDecl</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity VarDecl
+</span><a href="Parser.Parser.html#varDeclP"><span class="hs-identifier hs-var">varDeclP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-144"></span><span>      </span><span class="annot"><span class="annottext">IfElse -&gt; Statement
+</span><a href="Parser.Ast.html#StmtIfElse"><span class="hs-identifier hs-var">Ast.StmtIfElse</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser IfElse
+</span><a href="Parser.Parser.html#ifElseP"><span class="hs-identifier hs-var">ifElseP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-145"></span><span>      </span><span class="annot"><span class="annottext">Block -&gt; Statement
+</span><a href="Parser.Ast.html#StmtBlock"><span class="hs-identifier hs-var">Ast.StmtBlock</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Block
+</span><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-var">blockP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-146"></span><span>      </span><span class="annot"><span class="annottext">SimpleStmt -&gt; Statement
+</span><a href="Parser.Ast.html#StmtSimple"><span class="hs-identifier hs-var">Ast.StmtSimple</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#simpleStmtP"><span class="hs-identifier hs-var">simpleStmtP</span></a></span><span>
+</span><span id="line-147"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- | Return statement parser.</span><span>
+</span><span id="line-150"></span><span class="annot"><a href="Parser.Parser.html#stmtReturnP"><span class="hs-identifier hs-type">stmtReturnP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Statement"><span class="hs-identifier hs-type">Ast.Statement</span></a></span><span>
+</span><span id="line-151"></span><span id="stmtReturnP"><span class="annot"><span class="annottext">stmtReturnP :: Parser Statement
+</span><a href="Parser.Parser.html#stmtReturnP"><span class="hs-identifier hs-var hs-var">stmtReturnP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeVoid Expression -&gt; Statement
+</span><a href="Parser.Ast.html#StmtReturn"><span class="hs-identifier hs-var">Ast.StmtReturn</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwReturn"><span class="hs-identifier hs-var">kwReturn</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a.
+MonadParsec e s m =&gt;
+m a -&gt; m (MaybeVoid a)
+</span><a href="Parser.Parser.html#maybeVoid"><span class="hs-identifier hs-var">maybeVoid</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-152"></span><span>
+</span><span id="line-153"></span><span class="hs-comment">-- | For goto statement parser.</span><span>
+</span><span id="line-154"></span><span class="annot"><a href="Parser.Parser.html#stmtForGoToP"><span class="hs-identifier hs-type">stmtForGoToP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Statement"><span class="hs-identifier hs-type">Ast.Statement</span></a></span><span>
+</span><span id="line-155"></span><span id="stmtForGoToP"><span class="annot"><span class="annottext">stmtForGoToP :: Parser Statement
+</span><a href="Parser.Parser.html#stmtForGoToP"><span class="hs-identifier hs-var hs-var">stmtForGoToP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ForGoTo -&gt; Statement
+</span><a href="Parser.Ast.html#StmtForGoTo"><span class="hs-identifier hs-var">Ast.StmtForGoTo</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">ForGoTo
+</span><a href="Parser.Ast.html#Break"><span class="hs-identifier hs-var">Ast.Break</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwBreak"><span class="hs-identifier hs-var">kwBreak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ForGoTo
+</span><a href="Parser.Ast.html#Continue"><span class="hs-identifier hs-var">Ast.Continue</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwContinue"><span class="hs-identifier hs-var">kwContinue</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-156"></span><span>
+</span><span id="line-157"></span><span class="hs-comment">-- | For statement parser.</span><span>
+</span><span id="line-158"></span><span class="annot"><a href="Parser.Parser.html#stmtForP"><span class="hs-identifier hs-type">stmtForP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Statement"><span class="hs-identifier hs-type">Ast.Statement</span></a></span><span>
+</span><span id="line-159"></span><span id="stmtForP"><span class="annot"><span class="annottext">stmtForP :: Parser Statement
+</span><a href="Parser.Parser.html#stmtForP"><span class="hs-identifier hs-var hs-var">stmtForP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">For -&gt; Statement
+</span><a href="Parser.Ast.html#StmtFor"><span class="hs-identifier hs-var">Ast.StmtFor</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ForHead -&gt; Block -&gt; For
+</span><a href="Parser.Ast.html#For"><span class="hs-identifier hs-var">Ast.For</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwFor"><span class="hs-identifier hs-var">kwFor</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity ForHead
+</span><a href="#local-6989586621679167782"><span class="hs-identifier hs-var">forHead</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Block
+</span><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-var">blockP</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-160"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-161"></span><span>    </span><span id="local-6989586621679167782"><span class="annot"><span class="annottext">forHead :: ParsecT Void Text Identity ForHead
+</span><a href="#local-6989586621679167782"><span class="hs-identifier hs-var hs-var">forHead</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-162"></span><span>      </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-163"></span><span>        </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Maybe SimpleStmt -&gt; Maybe Expression -&gt; Maybe SimpleStmt -&gt; ForHead
+</span><a href="Parser.Ast.html#ForHead"><span class="hs-identifier hs-var">Ast.ForHead</span></a></span><span>
+</span><span id="line-164"></span><span>            </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#simpleStmtP"><span class="hs-identifier hs-var">simpleStmtP</span></a></span><span>
+</span><span id="line-165"></span><span>            </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#semicolon"><span class="hs-identifier hs-var">semicolon</span></a></span><span>
+</span><span id="line-166"></span><span>            </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-167"></span><span>            </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#semicolon"><span class="hs-identifier hs-var">semicolon</span></a></span><span>
+</span><span id="line-168"></span><span>            </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#simpleStmtP"><span class="hs-identifier hs-var">simpleStmtP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-169"></span><span>          </span><span class="annot"><span class="annottext">Maybe SimpleStmt -&gt; Maybe Expression -&gt; Maybe SimpleStmt -&gt; ForHead
+</span><a href="Parser.Ast.html#ForHead"><span class="hs-identifier hs-var">Ast.ForHead</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-170"></span><span>        </span><span class="hs-special">]</span><span>
+</span><span id="line-171"></span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- | Var declaration parser.</span><span>
+</span><span id="line-173"></span><span class="annot"><a href="Parser.Parser.html#varDeclP"><span class="hs-identifier hs-type">varDeclP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#VarDecl"><span class="hs-identifier hs-type">Ast.VarDecl</span></a></span><span>
+</span><span id="line-174"></span><span id="varDeclP"><span class="annot"><span class="annottext">varDeclP :: ParsecT Void Text Identity VarDecl
+</span><a href="Parser.Parser.html#varDeclP"><span class="hs-identifier hs-var hs-var">varDeclP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwVar"><span class="hs-identifier hs-var">kwVar</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; b -&gt; f b
+</span><span class="hs-operator hs-var">$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; VarValue -&gt; VarDecl
+</span><a href="Parser.Ast.html#VarDecl"><span class="hs-identifier hs-var">Ast.VarDecl</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity VarValue
+</span><a href="#local-6989586621679167760"><span class="hs-identifier hs-var">varValueP</span></a></span><span>
+</span><span id="line-175"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-176"></span><span>    </span><span id="local-6989586621679167760"><span class="annot"><span class="annottext">varValueP :: ParsecT Void Text Identity VarValue
+</span><a href="#local-6989586621679167760"><span class="hs-identifier hs-var hs-var">varValueP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-177"></span><span>      </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-178"></span><span>        </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Maybe Type -&gt; Expression -&gt; VarValue
+</span><a href="Parser.Ast.html#VarValue"><span class="hs-identifier hs-var">Ast.VarValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;=&quot;</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-179"></span><span>          </span><span class="annot"><span class="annottext">Type -&gt; VarValue
+</span><a href="Parser.Ast.html#DefaultedVarValue"><span class="hs-identifier hs-var">Ast.DefaultedVarValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span>
+</span><span id="line-180"></span><span>        </span><span class="hs-special">]</span><span>
+</span><span id="line-181"></span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- | If-else parser.</span><span>
+</span><span id="line-183"></span><span class="annot"><a href="Parser.Parser.html#ifElseP"><span class="hs-identifier hs-type">ifElseP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#IfElse"><span class="hs-identifier hs-type">Ast.IfElse</span></a></span><span>
+</span><span id="line-184"></span><span id="ifElseP"><span class="annot"><span class="annottext">ifElseP :: Parser IfElse
+</span><a href="Parser.Parser.html#ifElseP"><span class="hs-identifier hs-var hs-var">ifElseP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwIf"><span class="hs-identifier hs-var">kwIf</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; b -&gt; f b
+</span><span class="hs-operator hs-var">$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Maybe SimpleStmt -&gt; Expression -&gt; Block -&gt; Else -&gt; IfElse
+</span><a href="Parser.Ast.html#IfElse"><span class="hs-identifier hs-var">Ast.IfElse</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#simpleStmtP"><span class="hs-identifier hs-var">simpleStmtP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#semicolon"><span class="hs-identifier hs-var">semicolon</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Block
+</span><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-var">blockP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Else
+</span><a href="#local-6989586621679167744"><span class="hs-identifier hs-var">elseP</span></a></span><span>
+</span><span id="line-185"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-186"></span><span>    </span><span id="local-6989586621679167744"><span class="annot"><span class="annottext">elseP :: ParsecT Void Text Identity Else
+</span><a href="#local-6989586621679167744"><span class="hs-identifier hs-var hs-var">elseP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-187"></span><span>      </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-188"></span><span>        </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">IfElse -&gt; Else
+</span><a href="Parser.Ast.html#Elif"><span class="hs-identifier hs-var">Ast.Elif</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwElse"><span class="hs-identifier hs-var">kwElse</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser IfElse
+</span><a href="Parser.Parser.html#ifElseP"><span class="hs-identifier hs-var">ifElseP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-189"></span><span>          </span><span class="annot"><span class="annottext">Block -&gt; Else
+</span><a href="Parser.Ast.html#Else"><span class="hs-identifier hs-var">Ast.Else</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwElse"><span class="hs-identifier hs-var">kwElse</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Block
+</span><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-var">blockP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-190"></span><span>          </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Else
+</span><a href="Parser.Ast.html#NoElse"><span class="hs-identifier hs-var">Ast.NoElse</span></a></span><span>
+</span><span id="line-191"></span><span>        </span><span class="hs-special">]</span><span>
+</span><span id="line-192"></span><span>
+</span><span id="line-193"></span><span class="hs-comment">-- | Block parser.</span><span>
+</span><span id="line-194"></span><span class="annot"><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-type">blockP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Block"><span class="hs-identifier hs-type">Ast.Block</span></a></span><span>
+</span><span id="line-195"></span><span id="blockP"><span class="annot"><span class="annottext">blockP :: Parser Block
+</span><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-var hs-var">blockP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#braces"><span class="hs-identifier hs-var">braces</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall a. [Maybe a] -&gt; [a]
+</span><span class="hs-identifier hs-var">catMaybes</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">many</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Statement
+</span><a href="Parser.Parser.html#statementP"><span class="hs-identifier hs-var">statementP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#semicolon"><span class="hs-identifier hs-var">semicolon</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-196"></span><span>
+</span><span id="line-197"></span><span class="hs-comment">-- | Simple statement parser.</span><span>
+</span><span id="line-198"></span><span class="annot"><a href="Parser.Parser.html#simpleStmtP"><span class="hs-identifier hs-type">simpleStmtP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#SimpleStmt"><span class="hs-identifier hs-type">Ast.SimpleStmt</span></a></span><span>
+</span><span id="line-199"></span><span id="simpleStmtP"><span class="annot"><span class="annottext">simpleStmtP :: Parser SimpleStmt
+</span><a href="Parser.Parser.html#simpleStmtP"><span class="hs-identifier hs-var hs-var">simpleStmtP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtAssignmentP"><span class="hs-identifier hs-var">stmtAssignmentP</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtIncDecP"><span class="hs-identifier hs-var">stmtIncDecP</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtShortVarDeclP"><span class="hs-identifier hs-var">stmtShortVarDeclP</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtExpressionP"><span class="hs-identifier hs-var">stmtExpressionP</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-200"></span><span>
+</span><span id="line-201"></span><span class="hs-comment">-- | Assignment statement parser.</span><span>
+</span><span id="line-202"></span><span class="annot"><a href="Parser.Parser.html#stmtAssignmentP"><span class="hs-identifier hs-type">stmtAssignmentP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#SimpleStmt"><span class="hs-identifier hs-type">Ast.SimpleStmt</span></a></span><span>
+</span><span id="line-203"></span><span id="stmtAssignmentP"><span class="annot"><span class="annottext">stmtAssignmentP :: Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtAssignmentP"><span class="hs-identifier hs-var hs-var">stmtAssignmentP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lvalue -&gt; Expression -&gt; SimpleStmt
+</span><a href="Parser.Ast.html#StmtAssignment"><span class="hs-identifier hs-var">Ast.StmtAssignment</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Lvalue
+</span><a href="Parser.Parser.html#lvalueP"><span class="hs-identifier hs-var">lvalueP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;=&quot;</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-204"></span><span>
+</span><span id="line-205"></span><span class="hs-comment">-- | Increment or decrement statement parser.</span><span>
+</span><span id="line-206"></span><span class="annot"><a href="Parser.Parser.html#stmtIncDecP"><span class="hs-identifier hs-type">stmtIncDecP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#SimpleStmt"><span class="hs-identifier hs-type">Ast.SimpleStmt</span></a></span><span>
+</span><span id="line-207"></span><span id="stmtIncDecP"><span class="annot"><span class="annottext">stmtIncDecP :: Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtIncDecP"><span class="hs-identifier hs-var hs-var">stmtIncDecP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lvalue -&gt; IncDec -&gt; SimpleStmt
+</span><a href="Parser.Ast.html#StmtIncDec"><span class="hs-identifier hs-var">Ast.StmtIncDec</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Lvalue
+</span><a href="Parser.Parser.html#lvalueP"><span class="hs-identifier hs-var">lvalueP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">IncDec
+</span><a href="Parser.Ast.html#Inc"><span class="hs-identifier hs-var">Ast.Inc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;++&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IncDec
+</span><a href="Parser.Ast.html#Dec"><span class="hs-identifier hs-var">Ast.Dec</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;--&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-208"></span><span>
+</span><span id="line-209"></span><span class="hs-comment">-- | Short var declaration statement parser.</span><span>
+</span><span id="line-210"></span><span class="annot"><a href="Parser.Parser.html#stmtShortVarDeclP"><span class="hs-identifier hs-type">stmtShortVarDeclP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#SimpleStmt"><span class="hs-identifier hs-type">Ast.SimpleStmt</span></a></span><span>
+</span><span id="line-211"></span><span id="stmtShortVarDeclP"><span class="annot"><span class="annottext">stmtShortVarDeclP :: Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtShortVarDeclP"><span class="hs-identifier hs-var hs-var">stmtShortVarDeclP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Expression -&gt; SimpleStmt
+</span><a href="Parser.Ast.html#StmtShortVarDecl"><span class="hs-identifier hs-var">Ast.StmtShortVarDecl</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Parser Text
+</span><a href="Parser.Lexer.html#symbol"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;:=&quot;</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-212"></span><span>
+</span><span id="line-213"></span><span class="hs-comment">-- | Expression statement parser.</span><span>
+</span><span id="line-214"></span><span class="annot"><a href="Parser.Parser.html#stmtExpressionP"><span class="hs-identifier hs-type">stmtExpressionP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#SimpleStmt"><span class="hs-identifier hs-type">Ast.SimpleStmt</span></a></span><span>
+</span><span id="line-215"></span><span id="stmtExpressionP"><span class="annot"><span class="annottext">stmtExpressionP :: Parser SimpleStmt
+</span><a href="Parser.Parser.html#stmtExpressionP"><span class="hs-identifier hs-var hs-var">stmtExpressionP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Expression -&gt; SimpleStmt
+</span><a href="Parser.Ast.html#StmtExpression"><span class="hs-identifier hs-var">Ast.StmtExpression</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span>
+</span><span id="line-216"></span><span>
+</span><span id="line-217"></span><span class="hs-comment">-- | Lvalue parser.</span><span>
+</span><span id="line-218"></span><span class="annot"><a href="Parser.Parser.html#lvalueP"><span class="hs-identifier hs-type">lvalueP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Lvalue"><span class="hs-identifier hs-type">Ast.Lvalue</span></a></span><span>
+</span><span id="line-219"></span><span id="lvalueP"><span class="annot"><span class="annottext">lvalueP :: Parser Lvalue
+</span><a href="Parser.Parser.html#lvalueP"><span class="hs-identifier hs-var hs-var">lvalueP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-220"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-221"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Text -&gt; [Expression] -&gt; Lvalue
+</span><a href="Parser.Ast.html#LvalArrEl"><span class="hs-identifier hs-var">Ast.LvalArrEl</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">some</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#brackets"><span class="hs-identifier hs-var">brackets</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-222"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Lvalue
+</span><a href="Parser.Ast.html#LvalVar"><span class="hs-identifier hs-var">Ast.LvalVar</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span>
+</span><span id="line-223"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-224"></span><span>
+</span><span id="line-225"></span><span class="hs-comment">---------------------------------------------------------Values---------------------------------------------------------</span><span>
+</span><span id="line-226"></span><span>
+</span><span id="line-227"></span><span class="hs-comment">-- * Values parsers</span><span>
+</span><span id="line-228"></span><span>
+</span><span id="line-229"></span><span class="hs-comment">-- | Value parser.</span><span>
+</span><span id="line-230"></span><span class="annot"><a href="Parser.Parser.html#valueP"><span class="hs-identifier hs-type">valueP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Value"><span class="hs-identifier hs-type">Ast.Value</span></a></span><span>
+</span><span id="line-231"></span><span id="valueP"><span class="annot"><span class="annottext">valueP :: Parser Value
+</span><a href="Parser.Parser.html#valueP"><span class="hs-identifier hs-var hs-var">valueP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-232"></span><span>  </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span>
+</span><span id="line-233"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
+</span><a href="Parser.Ast.html#ValInt"><span class="hs-identifier hs-var">Ast.ValInt</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Integer
+</span><a href="Parser.Lexer.html#intLitP"><span class="hs-identifier hs-var">intLitP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-234"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; Value
+</span><a href="Parser.Ast.html#ValBool"><span class="hs-identifier hs-var">Ast.ValBool</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Bool
+</span><a href="Parser.Lexer.html#boolLitP"><span class="hs-identifier hs-var">boolLitP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-235"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Value
+</span><a href="Parser.Ast.html#ValString"><span class="hs-identifier hs-var">Ast.ValString</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#stringLitP"><span class="hs-identifier hs-var">stringLitP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-236"></span><span>      </span><span class="annot"><span class="annottext">ArrayValue -&gt; Value
+</span><a href="Parser.Ast.html#ValArray"><span class="hs-identifier hs-var">Ast.ValArray</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser ArrayValue
+</span><a href="Parser.Parser.html#arrayValP"><span class="hs-identifier hs-var">arrayValP</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-237"></span><span>      </span><span class="annot"><span class="annottext">FunctionValue -&gt; Value
+</span><a href="Parser.Ast.html#ValFunction"><span class="hs-identifier hs-var">Ast.ValFunction</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser FunctionValue
+</span><a href="Parser.Parser.html#functionValP"><span class="hs-identifier hs-var">functionValP</span></a></span><span>
+</span><span id="line-238"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-239"></span><span>
+</span><span id="line-240"></span><span class="hs-comment">-- | Array value parser.</span><span>
+</span><span id="line-241"></span><span class="annot"><a href="Parser.Parser.html#arrayValP"><span class="hs-identifier hs-type">arrayValP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#ArrayValue"><span class="hs-identifier hs-type">Ast.ArrayValue</span></a></span><span>
+</span><span id="line-242"></span><span id="arrayValP"><span class="annot"><span class="annottext">arrayValP :: Parser ArrayValue
+</span><a href="Parser.Parser.html#arrayValP"><span class="hs-identifier hs-var hs-var">arrayValP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ArrayType -&gt; [Expression] -&gt; ArrayValue
+</span><a href="Parser.Ast.html#ArrayValue"><span class="hs-identifier hs-var">Ast.ArrayValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser ArrayType
+</span><a href="Parser.Parser.html#arrayTypeP"><span class="hs-identifier hs-var">arrayTypeP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser a
+</span><a href="Parser.Lexer.html#braces"><span class="hs-identifier hs-var">braces</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser [a]
+</span><a href="Parser.Lexer.html#listed"><span class="hs-identifier hs-var">listed</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Expression
+</span><a href="Parser.Parser.html#expressionP"><span class="hs-identifier hs-var">expressionP</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-243"></span><span>
+</span><span id="line-244"></span><span class="hs-comment">-- | Function value parser.</span><span>
+</span><span id="line-245"></span><span class="annot"><a href="Parser.Parser.html#functionValP"><span class="hs-identifier hs-type">functionValP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#FunctionValue"><span class="hs-identifier hs-type">Ast.FunctionValue</span></a></span><span>
+</span><span id="line-246"></span><span id="functionValP"><span class="annot"><span class="annottext">functionValP :: Parser FunctionValue
+</span><a href="Parser.Parser.html#functionValP"><span class="hs-identifier hs-var hs-var">functionValP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var">choice'</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">FunctionValue
+</span><a href="Parser.Ast.html#Nil"><span class="hs-identifier hs-var">Ast.Nil</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#idNil"><span class="hs-identifier hs-var">idNil</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Function -&gt; FunctionValue
+</span><a href="Parser.Ast.html#AnonymousFunction"><span class="hs-identifier hs-var">Ast.AnonymousFunction</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#kwFunc"><span class="hs-identifier hs-var">kwFunc</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Function
+</span><a href="Parser.Parser.html#functionP"><span class="hs-identifier hs-var">functionP</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-247"></span><span>
+</span><span id="line-248"></span><span class="hs-comment">-- | Nameless function parser.</span><span>
+</span><span id="line-249"></span><span class="annot"><a href="Parser.Parser.html#functionP"><span class="hs-identifier hs-type">functionP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Parser.Lexer.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#Function"><span class="hs-identifier hs-type">Ast.Function</span></a></span><span>
+</span><span id="line-250"></span><span id="functionP"><span class="annot"><span class="annottext">functionP :: Parser Function
+</span><a href="Parser.Parser.html#functionP"><span class="hs-identifier hs-var hs-var">functionP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Text, Type)] -&gt; MaybeVoid Type -&gt; Block -&gt; Function
+</span><a href="Parser.Ast.html#Function"><span class="hs-identifier hs-var">Ast.Function</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser [(Text, Type)]
+</span><a href="#local-6989586621679167699"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity (MaybeVoid Type)
+</span><a href="#local-6989586621679167698"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Block
+</span><a href="Parser.Parser.html#blockP"><span class="hs-identifier hs-var">blockP</span></a></span><span>
+</span><span id="line-251"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-252"></span><span>    </span><span id="local-6989586621679167699"><span class="annot"><span class="annottext">params :: Parser [(Text, Type)]
+</span><a href="#local-6989586621679167699"><span class="hs-identifier hs-var hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. Parser a -&gt; Parser [a]
+</span><a href="Parser.Lexer.html#listedInPar"><span class="hs-identifier hs-var">listedInPar</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Text
+</span><a href="Parser.Lexer.html#identifierP"><span class="hs-identifier hs-var">identifierP</span></a></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-253"></span><span>    </span><span id="local-6989586621679167698"><span class="annot"><span class="annottext">result :: ParsecT Void Text Identity (MaybeVoid Type)
+</span><a href="#local-6989586621679167698"><span class="hs-identifier hs-var hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a.
+MonadParsec e s m =&gt;
+m a -&gt; m (MaybeVoid a)
+</span><a href="Parser.Parser.html#maybeVoid"><span class="hs-identifier hs-var">maybeVoid</span></a></span><span> </span><span class="annot"><span class="annottext">Parser Type
+</span><a href="Parser.Parser.html#typeP"><span class="hs-identifier hs-var">typeP</span></a></span><span>
+</span><span id="line-254"></span><span>
+</span><span id="line-255"></span><span class="hs-comment">---------------------------------------------------------Utils----------------------------------------------------------</span><span>
+</span><span id="line-256"></span><span>
+</span><span id="line-257"></span><span class="hs-comment">-- * Utils</span><span>
+</span><span id="line-258"></span><span>
+</span><span id="line-259"></span><span class="hs-comment">-- | Choice between elements parser with built-in backtracking support.</span><span>
+</span><span id="line-260"></span><span id="local-6989586621679168146"><span id="local-6989586621679168147"><span id="local-6989586621679168148"><span id="local-6989586621679168149"><span id="local-6989586621679168150"><span class="annot"><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-type">choice'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Foldable</span></span><span> </span><span class="annot"><a href="#local-6989586621679168150"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadParsec</span></span><span> </span><span class="annot"><a href="#local-6989586621679168149"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168148"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168147"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Functor</span></span><span> </span><span class="annot"><a href="#local-6989586621679168150"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168150"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679168147"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168146"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168147"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168146"><span class="hs-identifier hs-type">a</span></a></span></span></span></span></span></span><span>
+</span><span id="line-261"></span><span id="choice%27"><span class="annot"><span class="annottext">choice' :: forall (f :: * -&gt; *) e s (m :: * -&gt; *) a.
+(Foldable f, MonadParsec e s m, Functor f) =&gt;
+f (m a) -&gt; m a
+</span><a href="Parser.Parser.html#choice%27"><span class="hs-identifier hs-var hs-var">choice'</span></a></span></span><span> </span><span id="local-6989586621679167680"><span class="annot"><span class="annottext">f (m a)
+</span><a href="#local-6989586621679167680"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) (m :: * -&gt; *) a.
+(Foldable f, Alternative m) =&gt;
+f (m a) -&gt; m a
+</span><span class="hs-identifier hs-var">choice</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m a
+</span><span class="hs-identifier hs-var">try</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">f (m a)
+</span><a href="#local-6989586621679167680"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-262"></span><span>
+</span><span id="line-263"></span><span class="hs-comment">-- | Combine two alternatives with built-in backtracking support.</span><span>
+</span><span id="line-264"></span><span id="local-6989586621679168172"><span id="local-6989586621679168173"><span id="local-6989586621679168174"><span id="local-6989586621679168175"><span id="local-6989586621679168176"><span class="annot"><a href="Parser.Parser.html#eitherP%27"><span class="hs-identifier hs-type">eitherP'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadParsec</span></span><span> </span><span class="annot"><a href="#local-6989586621679168176"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168175"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168174"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168174"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168173"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168174"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168172"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168174"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679168173"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168172"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span></span></span></span></span></span><span>
+</span><span id="line-265"></span><span id="eitherP%27"><span class="annot"><span class="annottext">eitherP' :: forall e s (m :: * -&gt; *) a b.
+MonadParsec e s m =&gt;
+m a -&gt; m b -&gt; m (Either a b)
+</span><a href="Parser.Parser.html#eitherP%27"><span class="hs-identifier hs-var hs-var">eitherP'</span></a></span></span><span> </span><span id="local-6989586621679167673"><span class="annot"><span class="annottext">m a
+</span><a href="#local-6989586621679167673"><span class="hs-identifier hs-var">leftP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a b.
+Alternative m =&gt;
+m a -&gt; m b -&gt; m (Either a b)
+</span><span class="hs-identifier hs-var">eitherP</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m a
+</span><span class="hs-identifier hs-var">try</span></span><span> </span><span class="annot"><span class="annottext">m a
+</span><a href="#local-6989586621679167673"><span class="hs-identifier hs-var">leftP</span></a></span><span>
+</span><span id="line-266"></span><span>
+</span><span id="line-267"></span><span class="hs-comment">-- | Optional element parser with built-in backtracking support.</span><span>
+</span><span id="line-268"></span><span id="local-6989586621679168112"><span id="local-6989586621679168113"><span id="local-6989586621679168114"><span id="local-6989586621679168115"><span class="annot"><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-type">optional'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadParsec</span></span><span> </span><span class="annot"><a href="#local-6989586621679168115"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168114"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168113"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168113"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168112"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168113"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679168112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-269"></span><span id="optional%27"><span class="annot"><span class="annottext">optional' :: forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var hs-var">optional'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f (Maybe a)
+</span><span class="hs-identifier hs-var">optional</span></span><span> </span><span class="annot"><span class="annottext">forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m a
+</span><span class="hs-identifier hs-var">try</span></span><span>
+</span><span id="line-270"></span><span>
+</span><span id="line-271"></span><span id="local-6989586621679168125"><span id="local-6989586621679168126"><span id="local-6989586621679168127"><span id="local-6989586621679168128"><span class="annot"><a href="Parser.Parser.html#maybeVoid"><span class="hs-identifier hs-type">maybeVoid</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadParsec</span></span><span> </span><span class="annot"><a href="#local-6989586621679168128"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168127"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168126"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168126"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168125"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679168126"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="MaybeVoid.html#MaybeVoid"><span class="hs-identifier hs-type">MaybeVoid</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679168125"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-272"></span><span id="maybeVoid"><span class="annot"><span class="annottext">maybeVoid :: forall e s (m :: * -&gt; *) a.
+MonadParsec e s m =&gt;
+m a -&gt; m (MaybeVoid a)
+</span><a href="Parser.Parser.html#maybeVoid"><span class="hs-identifier hs-var hs-var">maybeVoid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">forall a. Maybe a -&gt; MaybeVoid a
+</span><a href="MaybeVoid.html#maybeToMaybeVoid"><span class="hs-identifier hs-var">maybeToMaybeVoid</span></a></span><span> </span><span class="annot"><span class="annottext">forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m (Maybe a)
+</span><a href="Parser.Parser.html#optional%27"><span class="hs-identifier hs-var">optional'</span></a></span><span>
+</span><span id="line-273"></span></pre></body></html>

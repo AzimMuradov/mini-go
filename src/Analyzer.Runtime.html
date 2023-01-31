@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TupleSections #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Analyzer.Runtime</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html"><span class="hs-identifier">Analyzer.AnalyzedAst</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">AAst</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html"><span class="hs-identifier">Analyzer.AnalyzedType</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">AType</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Analyzer.Result.html"><span class="hs-identifier">Analyzer.Result</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Lens</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ix</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(%~)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(?~)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(^?!)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadError</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">throwError</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.State</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">gets</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">modify</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(!?)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">isJust</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- ** Get a variable type</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Analyzer.Runtime.html#getVarType"><span class="hs-identifier hs-type">getVarType</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">AAst.Identifier</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">AType.Type</span></a></span><span>
+</span><span id="line-19"></span><span id="getVarType"><span class="annot"><span class="annottext">getVarType :: Text -&gt; Result Type
+</span><a href="Analyzer.Runtime.html#getVarType"><span class="hs-identifier hs-var hs-var">getVarType</span></a></span></span><span> </span><span id="local-6989586621679166630"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166630"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall s (m :: * -&gt; *) a. MonadState s m =&gt; (s -&gt; a) -&gt; m a
+</span><span class="hs-identifier hs-var">gets</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Env -&gt; Maybe (Type, ScopeLocation)
+</span><a href="Analyzer.Runtime.html#searchVar"><span class="hs-identifier hs-var">searchVar</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166630"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Err
+</span><a href="Analyzer.Result.html#IdentifierNotFound"><span class="hs-identifier hs-var">IdentifierNotFound</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166630"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- ** Add a new variable</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Analyzer.Runtime.html#addNewVar"><span class="hs-identifier hs-type">addNewVar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">AAst.Identifier</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">AType.Type</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span id="addNewVar"><span class="annot"><span class="annottext">addNewVar :: Text -&gt; Type -&gt; Result ()
+</span><a href="Analyzer.Runtime.html#addNewVar"><span class="hs-identifier hs-var hs-var">addNewVar</span></a></span></span><span> </span><span id="local-6989586621679166624"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166624"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679166623"><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166623"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679166622"><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166622"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">forall a. Maybe a -&gt; Bool
+</span><span class="hs-identifier hs-var">isJust</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166622"><span class="hs-identifier hs-var">env</span></a></span><span> </span><span class="annot"><span class="annottext">forall s a. HasCallStack =&gt; s -&gt; Getting (Endo a) s a -&gt; a
+</span><span class="hs-operator hs-var">^?!</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *).
+Applicative f =&gt;
+Int -&gt; Text -&gt; LensLike' f Env (Maybe Type)
+</span><a href="Analyzer.Result.html#var"><span class="hs-identifier hs-var">var</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166624"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Err
+</span><a href="Analyzer.Result.html#IdentifierRedeclaration"><span class="hs-identifier hs-var">IdentifierRedeclaration</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166624"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">forall s (m :: * -&gt; *). MonadState s m =&gt; (s -&gt; s) -&gt; m ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *).
+Applicative f =&gt;
+Int -&gt; Text -&gt; LensLike' f Env (Maybe Type)
+</span><a href="Analyzer.Result.html#var"><span class="hs-identifier hs-var">var</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166624"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">forall s t a b. ASetter s t a (Maybe b) -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">?~</span></span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166623"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- ** Add or update a variable</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="annot"><a href="Analyzer.Runtime.html#addOrUpdateVar"><span class="hs-identifier hs-type">addOrUpdateVar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">AAst.Identifier</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">AType.Type</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span id="addOrUpdateVar"><span class="annot"><span class="annottext">addOrUpdateVar :: Text -&gt; Type -&gt; Result ()
+</span><a href="Analyzer.Runtime.html#addOrUpdateVar"><span class="hs-identifier hs-var hs-var">addOrUpdateVar</span></a></span></span><span> </span><span id="local-6989586621679166618"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166618"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679166617"><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166617"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621679166616"><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166616"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Env -&gt; Maybe (Type, ScopeLocation)
+</span><a href="Analyzer.Runtime.html#searchVar"><span class="hs-identifier hs-var">searchVar</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166618"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166616"><span class="hs-identifier hs-var">env</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-36"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Type
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScopeLocation
+</span><a href="Analyzer.Runtime.html#Curr"><span class="hs-identifier hs-var">Curr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Type -&gt; Result ()
+</span><a href="Analyzer.Runtime.html#updateVar"><span class="hs-identifier hs-var">updateVar</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166618"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166617"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">Maybe (Type, ScopeLocation)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Type -&gt; Result ()
+</span><a href="Analyzer.Runtime.html#addNewVar"><span class="hs-identifier hs-var">addNewVar</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166618"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166617"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- ** Update a variable</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Analyzer.Runtime.html#updateVar"><span class="hs-identifier hs-type">updateVar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">AAst.Identifier</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">AType.Type</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span id="updateVar"><span class="annot"><span class="annottext">updateVar :: Text -&gt; Type -&gt; Result ()
+</span><a href="Analyzer.Runtime.html#updateVar"><span class="hs-identifier hs-var hs-var">updateVar</span></a></span></span><span> </span><span id="local-6989586621679166613"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166613"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679166612"><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166612"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679166611"><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166611"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Env -&gt; Maybe (Type, ScopeLocation)
+</span><a href="Analyzer.Runtime.html#searchVar"><span class="hs-identifier hs-var">searchVar</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166613"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166611"><span class="hs-identifier hs-var">env</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679166610"><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166610"><span class="hs-identifier hs-var">t'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScopeLocation
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166612"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166610"><span class="hs-identifier hs-var">t'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">(Type, ScopeLocation)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">Err
+</span><a href="Analyzer.Result.html#MismatchedTypes"><span class="hs-identifier hs-var">MismatchedTypes</span></a></span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">Maybe (Type, ScopeLocation)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Err
+</span><a href="Analyzer.Result.html#IdentifierNotFound"><span class="hs-identifier hs-var">IdentifierNotFound</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166613"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- ** Search for a variable</span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="annot"><a href="Analyzer.Runtime.html#searchVar"><span class="hs-identifier hs-type">searchVar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">AAst.Identifier</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">AType.Type</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Analyzer.Runtime.html#ScopeLocation"><span class="hs-identifier hs-type">ScopeLocation</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span id="searchVar"><span class="annot"><span class="annottext">searchVar :: Text -&gt; Env -&gt; Maybe (Type, ScopeLocation)
+</span><a href="Analyzer.Runtime.html#searchVar"><span class="hs-identifier hs-var hs-var">searchVar</span></a></span></span><span> </span><span id="local-6989586621679166608"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166608"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span> </span><span id="local-6989586621679166606"><span class="annot"><span class="annottext">[Scope]
+</span><a href="#local-6989586621679166606"><span class="hs-identifier hs-var">scs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; [Scope] -&gt; ScopeLocation -&gt; Maybe (Type, ScopeLocation)
+</span><a href="#local-6989586621679166605"><span class="hs-identifier hs-var">searchVar'</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166608"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">[Scope]
+</span><a href="#local-6989586621679166606"><span class="hs-identifier hs-var">scs</span></a></span><span> </span><span class="annot"><span class="annottext">ScopeLocation
+</span><a href="Analyzer.Runtime.html#Curr"><span class="hs-identifier hs-var">Curr</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-54"></span><span>    </span><span id="local-6989586621679166605"><span class="annot"><span class="annottext">searchVar' :: Text -&gt; [Scope] -&gt; ScopeLocation -&gt; Maybe (Type, ScopeLocation)
+</span><a href="#local-6989586621679166605"><span class="hs-identifier hs-var hs-var">searchVar'</span></a></span></span><span> </span><span id="local-6989586621679166598"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166598"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Analyzer.Result.html#Scope"><span class="hs-identifier hs-type">Scope</span></a></span><span> </span><span class="annot"><span class="annottext">ScopeType
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679166596"><span class="annot"><span class="annottext">Map Text Type
+</span><a href="#local-6989586621679166596"><span class="hs-identifier hs-var">ns</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679166595"><span class="annot"><span class="annottext">[Scope]
+</span><a href="#local-6989586621679166595"><span class="hs-identifier hs-var">outerScs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679166594"><span class="annot"><span class="annottext">ScopeLocation
+</span><a href="#local-6989586621679166594"><span class="hs-identifier hs-var">loc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="annot"><span class="annottext">ScopeLocation
+</span><a href="#local-6989586621679166594"><span class="hs-identifier hs-var">loc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map Text Type
+</span><a href="#local-6989586621679166596"><span class="hs-identifier hs-var">ns</span></a></span><span> </span><span class="annot"><span class="annottext">forall k a. Ord k =&gt; Map k a -&gt; k -&gt; Maybe a
+</span><span class="hs-operator hs-var">!?</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166598"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; [Scope] -&gt; ScopeLocation -&gt; Maybe (Type, ScopeLocation)
+</span><a href="#local-6989586621679166605"><span class="hs-identifier hs-var">searchVar'</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679166598"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[Scope]
+</span><a href="#local-6989586621679166595"><span class="hs-identifier hs-var">outerScs</span></a></span><span> </span><span class="annot"><span class="annottext">ScopeLocation
+</span><a href="Analyzer.Runtime.html#Outer"><span class="hs-identifier hs-var">Outer</span></a></span><span>
+</span><span id="line-55"></span><span>    </span><span class="annot"><a href="#local-6989586621679166605"><span class="hs-identifier hs-var">searchVar'</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[Scope]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ScopeLocation
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">data</span><span> </span><span id="ScopeLocation"><span class="annot"><a href="Analyzer.Runtime.html#ScopeLocation"><span class="hs-identifier hs-var">ScopeLocation</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Curr"><span class="annot"><a href="Analyzer.Runtime.html#Curr"><span class="hs-identifier hs-var">Curr</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="Outer"><span class="annot"><a href="Analyzer.Runtime.html#Outer"><span class="hs-identifier hs-var">Outer</span></a></span></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Analyzer.Runtime.html#getTypeDefault"><span class="hs-identifier hs-type">getTypeDefault</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">AType.Type</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">AAst.Expression</span></a></span><span>
+</span><span id="line-60"></span><span id="getTypeDefault"><span class="annot"><span class="annottext">getTypeDefault :: Type -&gt; Expression
+</span><a href="Analyzer.Runtime.html#getTypeDefault"><span class="hs-identifier hs-var hs-var">getTypeDefault</span></a></span></span><span> </span><span id="local-6989586621679166590"><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166590"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Expression
+</span><a href="Analyzer.AnalyzedAst.html#ExprValue"><span class="hs-identifier hs-var">AAst.ExprValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166590"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-61"></span><span>  </span><span class="annot"><span class="annottext">Type
+</span><a href="Analyzer.AnalyzedType.html#TInt"><span class="hs-identifier hs-var">AType.TInt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Value
+</span><a href="Analyzer.AnalyzedAst.html#ValInt"><span class="hs-identifier hs-var">AAst.ValInt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-62"></span><span>  </span><span class="annot"><span class="annottext">Type
+</span><a href="Analyzer.AnalyzedType.html#TBool"><span class="hs-identifier hs-var">AType.TBool</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Value
+</span><a href="Analyzer.AnalyzedAst.html#ValBool"><span class="hs-identifier hs-var">AAst.ValBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><span class="annottext">Type
+</span><a href="Analyzer.AnalyzedType.html#TString"><span class="hs-identifier hs-var">AType.TString</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Value
+</span><a href="Analyzer.AnalyzedAst.html#ValString"><span class="hs-identifier hs-var">AAst.ValString</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&quot;</span></span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><a href="Analyzer.AnalyzedType.html#TArray"><span class="hs-identifier hs-type">AType.TArray</span></a></span><span> </span><span id="local-6989586621679166581"><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166581"><span class="hs-identifier hs-var">elT</span></a></span></span><span> </span><span id="local-6989586621679166580"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679166580"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Expression] -&gt; Value
+</span><a href="Analyzer.AnalyzedAst.html#ValArray"><span class="hs-identifier hs-var">AAst.ValArray</span></a></span><span> </span><span class="annot"><span class="annottext">forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679166580"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Type -&gt; Expression
+</span><a href="Analyzer.Runtime.html#getTypeDefault"><span class="hs-identifier hs-var">getTypeDefault</span></a></span><span> </span><span class="annot"><span class="annottext">Type
+</span><a href="#local-6989586621679166581"><span class="hs-identifier hs-var">elT</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Analyzer.AnalyzedType.html#TFunction"><span class="hs-identifier hs-type">AType.TFunction</span></a></span><span> </span><span class="annot"><span class="annottext">FunctionType
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">FunctionValue -&gt; Value
+</span><a href="Analyzer.AnalyzedAst.html#ValFunction"><span class="hs-identifier hs-var">AAst.ValFunction</span></a></span><span> </span><span class="annot"><span class="annottext">FunctionValue
+</span><a href="Analyzer.AnalyzedAst.html#Nil"><span class="hs-identifier hs-var">AAst.Nil</span></a></span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="annottext">Type
+</span><a href="Analyzer.AnalyzedType.html#TNil"><span class="hs-identifier hs-var">AType.TNil</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">FunctionValue -&gt; Value
+</span><a href="Analyzer.AnalyzedAst.html#ValFunction"><span class="hs-identifier hs-var">AAst.ValFunction</span></a></span><span> </span><span class="annot"><span class="annottext">FunctionValue
+</span><a href="Analyzer.AnalyzedAst.html#Nil"><span class="hs-identifier hs-var">AAst.Nil</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- ** Scopes manipulation</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Analyzer.Runtime.html#pushScope"><span class="hs-identifier hs-type">pushScope</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Scope"><span class="hs-identifier hs-type">Scope</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span>
+</span><span id="line-71"></span><span id="pushScope"><span class="annot"><span class="annottext">pushScope :: Scope -&gt; Env -&gt; Env
+</span><a href="Analyzer.Runtime.html#pushScope"><span class="hs-identifier hs-var hs-var">pushScope</span></a></span></span><span> </span><span id="local-6989586621679166572"><span class="annot"><span class="annottext">Scope
+</span><a href="#local-6989586621679166572"><span class="hs-identifier hs-var">initScope</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Iso' Env [Scope]
+</span><a href="Analyzer.Result.html#scopes"><span class="hs-identifier hs-var">scopes</span></a></span><span> </span><span class="annot"><span class="annottext">forall s t a b. ASetter s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">%~</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Scope
+</span><a href="#local-6989586621679166572"><span class="hs-identifier hs-var">initScope</span></a></span><span> </span><span class="annot"><span class="annottext">forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Analyzer.Runtime.html#popScope"><span class="hs-identifier hs-type">popScope</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span>
+</span><span id="line-74"></span><span id="popScope"><span class="annot"><span class="annottext">popScope :: Env -&gt; Env
+</span><a href="Analyzer.Runtime.html#popScope"><span class="hs-identifier hs-var hs-var">popScope</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Iso' Env [Scope]
+</span><a href="Analyzer.Result.html#scopes"><span class="hs-identifier hs-var">scopes</span></a></span><span> </span><span class="annot"><span class="annottext">forall s t a b. ASetter s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">%~</span></span><span> </span><span class="annot"><span class="annottext">forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">tail</span></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span class="annot"><a href="Analyzer.Runtime.html#getCurrScopeType"><span class="hs-identifier hs-type">getCurrScopeType</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.Result.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Analyzer.Result.html#ScopeType"><span class="hs-identifier hs-type">ScopeType</span></a></span><span>
+</span><span id="line-77"></span><span id="getCurrScopeType"><span class="annot"><span class="annottext">getCurrScopeType :: Env -&gt; ScopeType
+</span><a href="Analyzer.Runtime.html#getCurrScopeType"><span class="hs-identifier hs-var hs-var">getCurrScopeType</span></a></span></span><span> </span><span id="local-6989586621679166567"><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166567"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679166567"><span class="hs-identifier hs-var">env</span></a></span><span> </span><span class="annot"><span class="annottext">forall s a. HasCallStack =&gt; s -&gt; Getting (Endo a) s a -&gt; a
+</span><span class="hs-operator hs-var">^?!</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Iso' Env [Scope]
+</span><a href="Analyzer.Result.html#scopes"><span class="hs-identifier hs-var">scopes</span></a></span><span> </span><span class="annot"><span class="annottext">forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall m. Ixed m =&gt; Index m -&gt; Traversal' m (IxValue m)
+</span><span class="hs-identifier hs-var">ix</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lens' Scope ScopeType
+</span><a href="Analyzer.Result.html#scopeType"><span class="hs-identifier hs-var">scopeType</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span></pre></body></html>

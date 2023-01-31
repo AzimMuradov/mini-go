@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | Types representation during the analysis process.</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Analyzer.AnalyzedType</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="MaybeVoid.html"><span class="hs-identifier">MaybeVoid</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="MaybeVoid.html#MaybeVoid"><span class="hs-identifier">MaybeVoid</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- | Type representation during the analysis process.</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">data</span><span> </span><span id="Type"><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-var">Type</span></a></span></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | 32-bit/64-bit (depending on the machine) integer type.</span><span>
+</span><span id="line-9"></span><span>    </span><span id="TInt"><span class="annot"><a href="Analyzer.AnalyzedType.html#TInt"><span class="hs-identifier hs-var">TInt</span></a></span></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Boolean type.</span><span>
+</span><span id="line-11"></span><span>    </span><span id="TBool"><span class="annot"><a href="Analyzer.AnalyzedType.html#TBool"><span class="hs-identifier hs-var">TBool</span></a></span></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | String type.</span><span>
+</span><span id="line-13"></span><span>    </span><span id="TString"><span class="annot"><a href="Analyzer.AnalyzedType.html#TString"><span class="hs-identifier hs-var">TString</span></a></span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Array type, it contains the length of the array and its elements type.</span><span>
+</span><span id="line-15"></span><span>    </span><span id="TArray"><span class="annot"><a href="Analyzer.AnalyzedType.html#TArray"><span class="hs-identifier hs-var">TArray</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">Type</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Function type, see 'FunctionType'.</span><span>
+</span><span id="line-17"></span><span>    </span><span id="TFunction"><span class="annot"><a href="Analyzer.AnalyzedType.html#TFunction"><span class="hs-identifier hs-var">TFunction</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#FunctionType"><span class="hs-identifier hs-type">FunctionType</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Null type.</span><span>
+</span><span id="line-19"></span><span>    </span><span id="TNil"><span class="annot"><a href="Analyzer.AnalyzedType.html#TNil"><span class="hs-identifier hs-var">TNil</span></a></span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164759"><span id="local-6989586621679164761"><span id="local-6989586621679164770"><span class="annot"><span class="annottext">Int -&gt; Type -&gt; ShowS
+[Type] -&gt; ShowS
+Type -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Type] -&gt; ShowS
+$cshowList :: [Type] -&gt; ShowS
+show :: Type -&gt; String
+$cshow :: Type -&gt; String
+showsPrec :: Int -&gt; Type -&gt; ShowS
+$cshowsPrec :: Int -&gt; Type -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164750"><span id="local-6989586621679164756"><span class="annot"><span class="annottext">Type -&gt; Type -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Type -&gt; Type -&gt; Bool
+$c/= :: Type -&gt; Type -&gt; Bool
+== :: Type -&gt; Type -&gt; Bool
+$c== :: Type -&gt; Type -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | Function type,</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- it contains the result of the function (which can be @void@ if the result is equal to 'Nothing')</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- and its parameters types.</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">data</span><span> </span><span id="FunctionType"><span class="annot"><a href="Analyzer.AnalyzedType.html#FunctionType"><span class="hs-identifier hs-var">FunctionType</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="FunctionType"><span class="annot"><a href="Analyzer.AnalyzedType.html#FunctionType"><span class="hs-identifier hs-var">FunctionType</span></a></span></span><span> </span><span class="hs-special">{</span><span id="parameters"><span class="annot"><span class="annottext">FunctionType -&gt; [Type]
+</span><a href="Analyzer.AnalyzedType.html#parameters"><span class="hs-identifier hs-var hs-var">parameters</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">Type</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span id="returnType"><span class="annot"><span class="annottext">FunctionType -&gt; MaybeVoid Type
+</span><a href="Analyzer.AnalyzedType.html#returnType"><span class="hs-identifier hs-var hs-var">returnType</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="MaybeVoid.html#MaybeVoid"><span class="hs-identifier hs-type">MaybeVoid</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedType.html#Type"><span class="hs-identifier hs-type">Type</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164734"><span id="local-6989586621679164736"><span id="local-6989586621679164744"><span class="annot"><span class="annottext">Int -&gt; FunctionType -&gt; ShowS
+[FunctionType] -&gt; ShowS
+FunctionType -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [FunctionType] -&gt; ShowS
+$cshowList :: [FunctionType] -&gt; ShowS
+show :: FunctionType -&gt; String
+$cshow :: FunctionType -&gt; String
+showsPrec :: Int -&gt; FunctionType -&gt; ShowS
+$cshowsPrec :: Int -&gt; FunctionType -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164725"><span id="local-6989586621679164732"><span class="annot"><span class="annottext">FunctionType -&gt; FunctionType -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: FunctionType -&gt; FunctionType -&gt; Bool
+$c/= :: FunctionType -&gt; FunctionType -&gt; Bool
+== :: FunctionType -&gt; FunctionType -&gt; Bool
+$c== :: FunctionType -&gt; FunctionType -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span></pre></body></html>

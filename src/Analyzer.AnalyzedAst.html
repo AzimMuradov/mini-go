@@ -1,0 +1,309 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DuplicateRecordFields #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Analyzer.AnalyzedAst</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html"><span class="hs-identifier">Analyzer.AnalyzedAst</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Parser.Ast.html#UnaryOp"><span class="hs-identifier">UnaryOp</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Parser.Ast.html#BinaryOp"><span class="hs-identifier">BinaryOp</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Parser.Ast.html#ForGoTo"><span class="hs-identifier">ForGoTo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Parser.Ast.html#IncDec"><span class="hs-identifier">IncDec</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="MaybeVoid.html"><span class="hs-identifier">MaybeVoid</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="MaybeVoid.html#MaybeVoid"><span class="hs-identifier">MaybeVoid</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Parser.Ast.html"><span class="hs-identifier">Parser.Ast</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Parser.Ast.html#BinaryOp"><span class="hs-identifier">BinaryOp</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Parser.Ast.html#ForGoTo"><span class="hs-identifier">ForGoTo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Parser.Ast.html#IncDec"><span class="hs-identifier">IncDec</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Parser.Ast.html#UnaryOp"><span class="hs-identifier">UnaryOp</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">--------------------------------------------------------Program---------------------------------------------------------</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">data</span><span> </span><span id="Program"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Program"><span class="hs-identifier hs-var">Program</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Program"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Program"><span class="hs-identifier hs-var">Program</span></a></span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AtopLevelVarDecls%3AProgram"><span class="annot"><span class="annottext">Program -&gt; [VarDecl]
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AtopLevelVarDecls%3AProgram"><span class="hs-identifier hs-var hs-var">topLevelVarDecls</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#VarDecl"><span class="hs-identifier hs-type">VarDecl</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span id="%24sel%3AtopLevelFunctionDefs%3AProgram"><span class="annot"><span class="annottext">Program -&gt; [FunctionDef]
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AtopLevelFunctionDefs%3AProgram"><span class="hs-identifier hs-var hs-var">topLevelFunctionDefs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#FunctionDef"><span class="hs-identifier hs-type">FunctionDef</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165551"><span id="local-6989586621679165553"><span id="local-6989586621679165562"><span class="annot"><span class="annottext">Int -&gt; Program -&gt; ShowS
+[Program] -&gt; ShowS
+Program -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Program] -&gt; ShowS
+$cshowList :: [Program] -&gt; ShowS
+show :: Program -&gt; String
+$cshow :: Program -&gt; String
+showsPrec :: Int -&gt; Program -&gt; ShowS
+$cshowsPrec :: Int -&gt; Program -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">data</span><span> </span><span id="FunctionDef"><span class="annot"><a href="Analyzer.AnalyzedAst.html#FunctionDef"><span class="hs-identifier hs-var">FunctionDef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="FunctionDef"><span class="annot"><a href="Analyzer.AnalyzedAst.html#FunctionDef"><span class="hs-identifier hs-var">FunctionDef</span></a></span></span><span> </span><span class="hs-special">{</span><span id="%24sel%3AfuncName%3AFunctionDef"><span class="annot"><span class="annottext">FunctionDef -&gt; Identifier
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AfuncName%3AFunctionDef"><span class="hs-identifier hs-var hs-var">funcName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span class="hs-special">,</span><span> </span><span id="%24sel%3Afunc%3AFunctionDef"><span class="annot"><span class="annottext">FunctionDef -&gt; Function
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3Afunc%3AFunctionDef"><span class="hs-identifier hs-var hs-var">func</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Function"><span class="hs-identifier hs-type">Function</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165537"><span id="local-6989586621679165539"><span id="local-6989586621679165545"><span class="annot"><span class="annottext">Int -&gt; FunctionDef -&gt; ShowS
+[FunctionDef] -&gt; ShowS
+FunctionDef -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [FunctionDef] -&gt; ShowS
+$cshowList :: [FunctionDef] -&gt; ShowS
+show :: FunctionDef -&gt; String
+$cshow :: FunctionDef -&gt; String
+showsPrec :: Int -&gt; FunctionDef -&gt; ShowS
+$cshowsPrec :: Int -&gt; FunctionDef -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">------------------------------------------------------Expressions-------------------------------------------------------</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">data</span><span> </span><span id="Expression"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-var">Expression</span></a></span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ExprValue"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ExprValue"><span class="hs-identifier hs-var">ExprValue</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ExprIdentifier"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ExprIdentifier"><span class="hs-identifier hs-var">ExprIdentifier</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ExprUnaryOp"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ExprUnaryOp"><span class="hs-identifier hs-var">ExprUnaryOp</span></a></span></span><span> </span><span class="annot"><a href="Parser.Ast.html#UnaryOp"><span class="hs-identifier hs-type">UnaryOp</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ExprBinaryOp"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ExprBinaryOp"><span class="hs-identifier hs-var">ExprBinaryOp</span></a></span></span><span> </span><span class="annot"><a href="Parser.Ast.html#BinaryOp"><span class="hs-identifier hs-type">BinaryOp</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ExprArrayAccessByIndex"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ExprArrayAccessByIndex"><span class="hs-identifier hs-var">ExprArrayAccessByIndex</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ExprFuncCall"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ExprFuncCall"><span class="hs-identifier hs-var">ExprFuncCall</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165506"><span id="local-6989586621679165508"><span id="local-6989586621679165529"><span class="annot"><span class="annottext">Int -&gt; Expression -&gt; ShowS
+[Expression] -&gt; ShowS
+Expression -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Expression] -&gt; ShowS
+$cshowList :: [Expression] -&gt; ShowS
+show :: Expression -&gt; String
+$cshow :: Expression -&gt; String
+showsPrec :: Int -&gt; Expression -&gt; ShowS
+$cshowsPrec :: Int -&gt; Expression -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-------------------------------------------------------Statements-------------------------------------------------------</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">data</span><span> </span><span id="Statement"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Statement"><span class="hs-identifier hs-var">Statement</span></a></span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="StmtReturn"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtReturn"><span class="hs-identifier hs-var">StmtReturn</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="MaybeVoid.html#MaybeVoid"><span class="hs-identifier hs-type">MaybeVoid</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtForGoTo"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtForGoTo"><span class="hs-identifier hs-var">StmtForGoTo</span></a></span></span><span> </span><span class="annot"><a href="Parser.Ast.html#ForGoTo"><span class="hs-identifier hs-type">ForGoTo</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtFor"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtFor"><span class="hs-identifier hs-var">StmtFor</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#For"><span class="hs-identifier hs-type">For</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtVarDecl"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtVarDecl"><span class="hs-identifier hs-var">StmtVarDecl</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#VarDecl"><span class="hs-identifier hs-type">VarDecl</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtIfElse"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtIfElse"><span class="hs-identifier hs-var">StmtIfElse</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#IfElse"><span class="hs-identifier hs-type">IfElse</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtBlock"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtBlock"><span class="hs-identifier hs-var">StmtBlock</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Block"><span class="hs-identifier hs-type">Block</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtSimple"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtSimple"><span class="hs-identifier hs-var">StmtSimple</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#SimpleStmt"><span class="hs-identifier hs-type">SimpleStmt</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165474"><span id="local-6989586621679165476"><span id="local-6989586621679165496"><span class="annot"><span class="annottext">Int -&gt; Statement -&gt; ShowS
+[Statement] -&gt; ShowS
+Statement -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Statement] -&gt; ShowS
+$cshowList :: [Statement] -&gt; ShowS
+show :: Statement -&gt; String
+$cshow :: Statement -&gt; String
+showsPrec :: Int -&gt; Statement -&gt; ShowS
+$cshowsPrec :: Int -&gt; Statement -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">type</span><span> </span><span id="Block"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Block"><span class="hs-identifier hs-var">Block</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Statement"><span class="hs-identifier hs-type">Statement</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">data</span><span> </span><span id="For"><span class="annot"><a href="Analyzer.AnalyzedAst.html#For"><span class="hs-identifier hs-var">For</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="For"><span class="annot"><a href="Analyzer.AnalyzedAst.html#For"><span class="hs-identifier hs-var">For</span></a></span></span><span> </span><span class="hs-special">{</span><span id="%24sel%3AforHead%3AFor"><span class="annot"><span class="annottext">For -&gt; ForHead
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AforHead%3AFor"><span class="hs-identifier hs-var hs-var">forHead</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#ForHead"><span class="hs-identifier hs-type">ForHead</span></a></span><span class="hs-special">,</span><span> </span><span id="%24sel%3AforBody%3AFor"><span class="annot"><span class="annottext">For -&gt; [Statement]
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AforBody%3AFor"><span class="hs-identifier hs-var hs-var">forBody</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Block"><span class="hs-identifier hs-type">Block</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165461"><span id="local-6989586621679165463"><span id="local-6989586621679165469"><span class="annot"><span class="annottext">Int -&gt; For -&gt; ShowS
+[For] -&gt; ShowS
+For -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [For] -&gt; ShowS
+$cshowList :: [For] -&gt; ShowS
+show :: For -&gt; String
+$cshow :: For -&gt; String
+showsPrec :: Int -&gt; For -&gt; ShowS
+$cshowsPrec :: Int -&gt; For -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">data</span><span> </span><span id="ForHead"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ForHead"><span class="hs-identifier hs-var">ForHead</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ForHead"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ForHead"><span class="hs-identifier hs-var">ForHead</span></a></span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AforPreStmt%3AForHead"><span class="annot"><span class="annottext">ForHead -&gt; Maybe SimpleStmt
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AforPreStmt%3AForHead"><span class="hs-identifier hs-var hs-var">forPreStmt</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#SimpleStmt"><span class="hs-identifier hs-type">SimpleStmt</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-57"></span><span>    </span><span id="%24sel%3AforCondition%3AForHead"><span class="annot"><span class="annottext">ForHead -&gt; Maybe Expression
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AforCondition%3AForHead"><span class="hs-identifier hs-var hs-var">forCondition</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-58"></span><span>    </span><span id="%24sel%3AforPostStmt%3AForHead"><span class="annot"><span class="annottext">ForHead -&gt; Maybe SimpleStmt
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AforPostStmt%3AForHead"><span class="hs-identifier hs-var hs-var">forPostStmt</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#SimpleStmt"><span class="hs-identifier hs-type">SimpleStmt</span></a></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165444"><span id="local-6989586621679165446"><span id="local-6989586621679165455"><span class="annot"><span class="annottext">Int -&gt; ForHead -&gt; ShowS
+[ForHead] -&gt; ShowS
+ForHead -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ForHead] -&gt; ShowS
+$cshowList :: [ForHead] -&gt; ShowS
+show :: ForHead -&gt; String
+$cshow :: ForHead -&gt; String
+showsPrec :: Int -&gt; ForHead -&gt; ShowS
+$cshowsPrec :: Int -&gt; ForHead -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-keyword">data</span><span> </span><span id="VarDecl"><span class="annot"><a href="Analyzer.AnalyzedAst.html#VarDecl"><span class="hs-identifier hs-var">VarDecl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="VarDecl"><span class="annot"><a href="Analyzer.AnalyzedAst.html#VarDecl"><span class="hs-identifier hs-var">VarDecl</span></a></span></span><span> </span><span class="hs-special">{</span><span id="%24sel%3AvarName%3AVarDecl"><span class="annot"><span class="annottext">VarDecl -&gt; Identifier
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AvarName%3AVarDecl"><span class="hs-identifier hs-var hs-var">varName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span class="hs-special">,</span><span> </span><span id="%24sel%3AvarValue%3AVarDecl"><span class="annot"><span class="annottext">VarDecl -&gt; Expression
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AvarValue%3AVarDecl"><span class="hs-identifier hs-var hs-var">varValue</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165432"><span id="local-6989586621679165434"><span id="local-6989586621679165439"><span class="annot"><span class="annottext">Int -&gt; VarDecl -&gt; ShowS
+[VarDecl] -&gt; ShowS
+VarDecl -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [VarDecl] -&gt; ShowS
+$cshowList :: [VarDecl] -&gt; ShowS
+show :: VarDecl -&gt; String
+$cshow :: VarDecl -&gt; String
+showsPrec :: Int -&gt; VarDecl -&gt; ShowS
+$cshowsPrec :: Int -&gt; VarDecl -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">data</span><span> </span><span id="IfElse"><span class="annot"><a href="Analyzer.AnalyzedAst.html#IfElse"><span class="hs-identifier hs-var">IfElse</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IfElse"><span class="annot"><a href="Analyzer.AnalyzedAst.html#IfElse"><span class="hs-identifier hs-var">IfElse</span></a></span></span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AifPreStmt%3AIfElse"><span class="annot"><span class="annottext">IfElse -&gt; Maybe SimpleStmt
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AifPreStmt%3AIfElse"><span class="hs-identifier hs-var hs-var">ifPreStmt</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#SimpleStmt"><span class="hs-identifier hs-type">SimpleStmt</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-67"></span><span>    </span><span id="%24sel%3AifCondition%3AIfElse"><span class="annot"><span class="annottext">IfElse -&gt; Expression
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AifCondition%3AIfElse"><span class="hs-identifier hs-var hs-var">ifCondition</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-68"></span><span>    </span><span id="%24sel%3AifBody%3AIfElse"><span class="annot"><span class="annottext">IfElse -&gt; [Statement]
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AifBody%3AIfElse"><span class="hs-identifier hs-var hs-var">ifBody</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Block"><span class="hs-identifier hs-type">Block</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-69"></span><span>    </span><span id="%24sel%3AelseStmt%3AIfElse"><span class="annot"><span class="annottext">IfElse -&gt; Else
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AelseStmt%3AIfElse"><span class="hs-identifier hs-var hs-var">elseStmt</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Else"><span class="hs-identifier hs-type">Else</span></a></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165414"><span id="local-6989586621679165416"><span id="local-6989586621679165425"><span class="annot"><span class="annottext">Int -&gt; IfElse -&gt; ShowS
+[IfElse] -&gt; ShowS
+IfElse -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [IfElse] -&gt; ShowS
+$cshowList :: [IfElse] -&gt; ShowS
+show :: IfElse -&gt; String
+$cshow :: IfElse -&gt; String
+showsPrec :: Int -&gt; IfElse -&gt; ShowS
+$cshowsPrec :: Int -&gt; IfElse -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="hs-keyword">data</span><span> </span><span id="Else"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Else"><span class="hs-identifier hs-var">Else</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NoElse"><span class="annot"><a href="Analyzer.AnalyzedAst.html#NoElse"><span class="hs-identifier hs-var">NoElse</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="Else"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Else"><span class="hs-identifier hs-var">Else</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Block"><span class="hs-identifier hs-type">Block</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="Elif"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Elif"><span class="hs-identifier hs-var">Elif</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#IfElse"><span class="hs-identifier hs-type">IfElse</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165400"><span id="local-6989586621679165402"><span id="local-6989586621679165409"><span class="annot"><span class="annottext">Int -&gt; Else -&gt; ShowS
+[Else] -&gt; ShowS
+Else -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Else] -&gt; ShowS
+$cshowList :: [Else] -&gt; ShowS
+show :: Else -&gt; String
+$cshow :: Else -&gt; String
+showsPrec :: Int -&gt; Else -&gt; ShowS
+$cshowsPrec :: Int -&gt; Else -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span class="hs-keyword">data</span><span> </span><span id="SimpleStmt"><span class="annot"><a href="Analyzer.AnalyzedAst.html#SimpleStmt"><span class="hs-identifier hs-var">SimpleStmt</span></a></span></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="StmtAssignment"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtAssignment"><span class="hs-identifier hs-var">StmtAssignment</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Lvalue"><span class="hs-identifier hs-type">Lvalue</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtIncDec"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtIncDec"><span class="hs-identifier hs-var">StmtIncDec</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Lvalue"><span class="hs-identifier hs-type">Lvalue</span></a></span><span> </span><span class="annot"><a href="Parser.Ast.html#IncDec"><span class="hs-identifier hs-type">IncDec</span></a></span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtShortVarDecl"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtShortVarDecl"><span class="hs-identifier hs-var">StmtShortVarDecl</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StmtExpression"><span class="annot"><a href="Analyzer.AnalyzedAst.html#StmtExpression"><span class="hs-identifier hs-var">StmtExpression</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165378"><span id="local-6989586621679165380"><span id="local-6989586621679165394"><span class="annot"><span class="annottext">Int -&gt; SimpleStmt -&gt; ShowS
+[SimpleStmt] -&gt; ShowS
+SimpleStmt -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SimpleStmt] -&gt; ShowS
+$cshowList :: [SimpleStmt] -&gt; ShowS
+show :: SimpleStmt -&gt; String
+$cshow :: SimpleStmt -&gt; String
+showsPrec :: Int -&gt; SimpleStmt -&gt; ShowS
+$cshowsPrec :: Int -&gt; SimpleStmt -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-keyword">data</span><span> </span><span id="Lvalue"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Lvalue"><span class="hs-identifier hs-var">Lvalue</span></a></span></span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="LvalVar"><span class="annot"><a href="Analyzer.AnalyzedAst.html#LvalVar"><span class="hs-identifier hs-var">LvalVar</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="LvalArrEl"><span class="annot"><a href="Analyzer.AnalyzedAst.html#LvalArrEl"><span class="hs-identifier hs-var">LvalArrEl</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165364"><span id="local-6989586621679165366"><span id="local-6989586621679165374"><span class="annot"><span class="annottext">Int -&gt; Lvalue -&gt; ShowS
+[Lvalue] -&gt; ShowS
+Lvalue -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Lvalue] -&gt; ShowS
+$cshowList :: [Lvalue] -&gt; ShowS
+show :: Lvalue -&gt; String
+$cshow :: Lvalue -&gt; String
+showsPrec :: Int -&gt; Lvalue -&gt; ShowS
+$cshowsPrec :: Int -&gt; Lvalue -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">---------------------------------------------------------Values---------------------------------------------------------</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-keyword">data</span><span> </span><span id="Value"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Value"><span class="hs-identifier hs-var">Value</span></a></span></span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ValInt"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ValInt"><span class="hs-identifier hs-var">ValInt</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ValBool"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ValBool"><span class="hs-identifier hs-var">ValBool</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ValString"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ValString"><span class="hs-identifier hs-var">ValString</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ValArray"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ValArray"><span class="hs-identifier hs-var">ValArray</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Expression"><span class="hs-identifier hs-type">Expression</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ValFunction"><span class="annot"><a href="Analyzer.AnalyzedAst.html#ValFunction"><span class="hs-identifier hs-var">ValFunction</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#FunctionValue"><span class="hs-identifier hs-type">FunctionValue</span></a></span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165340"><span id="local-6989586621679165342"><span id="local-6989586621679165357"><span class="annot"><span class="annottext">Int -&gt; Value -&gt; ShowS
+[Value] -&gt; ShowS
+Value -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Value] -&gt; ShowS
+$cshowList :: [Value] -&gt; ShowS
+show :: Value -&gt; String
+$cshow :: Value -&gt; String
+showsPrec :: Int -&gt; Value -&gt; ShowS
+$cshowsPrec :: Int -&gt; Value -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-keyword">data</span><span> </span><span id="FunctionValue"><span class="annot"><a href="Analyzer.AnalyzedAst.html#FunctionValue"><span class="hs-identifier hs-var">FunctionValue</span></a></span></span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="Function"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Function"><span class="hs-identifier hs-var">Function</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Function"><span class="hs-identifier hs-type">Function</span></a></span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Nil"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Nil"><span class="hs-identifier hs-var">Nil</span></a></span></span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165330"><span id="local-6989586621679165332"><span id="local-6989586621679165336"><span class="annot"><span class="annottext">Int -&gt; FunctionValue -&gt; ShowS
+[FunctionValue] -&gt; ShowS
+FunctionValue -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [FunctionValue] -&gt; ShowS
+$cshowList :: [FunctionValue] -&gt; ShowS
+show :: FunctionValue -&gt; String
+$cshow :: FunctionValue -&gt; String
+showsPrec :: Int -&gt; FunctionValue -&gt; ShowS
+$cshowsPrec :: Int -&gt; FunctionValue -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-keyword">data</span><span> </span><span id="Function"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Function"><span class="hs-identifier hs-var">Function</span></a></span></span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="FuncOrdinary"><span class="annot"><a href="Analyzer.AnalyzedAst.html#FuncOrdinary"><span class="hs-identifier hs-var">FuncOrdinary</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#OrdinaryFunction"><span class="hs-identifier hs-type">OrdinaryFunction</span></a></span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="FuncStdLib"><span class="annot"><a href="Analyzer.AnalyzedAst.html#FuncStdLib"><span class="hs-identifier hs-var">FuncStdLib</span></a></span></span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165318"><span id="local-6989586621679165320"><span id="local-6989586621679165326"><span class="annot"><span class="annottext">Int -&gt; Function -&gt; ShowS
+[Function] -&gt; ShowS
+Function -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Function] -&gt; ShowS
+$cshowList :: [Function] -&gt; ShowS
+show :: Function -&gt; String
+$cshow :: Function -&gt; String
+showsPrec :: Int -&gt; Function -&gt; ShowS
+$cshowsPrec :: Int -&gt; Function -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="hs-keyword">data</span><span> </span><span id="OrdinaryFunction"><span class="annot"><a href="Analyzer.AnalyzedAst.html#OrdinaryFunction"><span class="hs-identifier hs-var">OrdinaryFunction</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="OrdinaryFunction"><span class="annot"><a href="Analyzer.AnalyzedAst.html#OrdinaryFunction"><span class="hs-identifier hs-var">OrdinaryFunction</span></a></span></span><span> </span><span class="hs-special">{</span><span id="%24sel%3AfuncParams%3AOrdinaryFunction"><span class="annot"><span class="annottext">OrdinaryFunction -&gt; [Identifier]
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AfuncParams%3AOrdinaryFunction"><span class="hs-identifier hs-var hs-var">funcParams</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-type">Identifier</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span id="%24sel%3AfuncBody%3AOrdinaryFunction"><span class="annot"><span class="annottext">OrdinaryFunction -&gt; [Statement]
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AfuncBody%3AOrdinaryFunction"><span class="hs-identifier hs-var hs-var">funcBody</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#Block"><span class="hs-identifier hs-type">Block</span></a></span><span class="hs-special">,</span><span> </span><span id="%24sel%3AfuncVoidMark%3AOrdinaryFunction"><span class="annot"><span class="annottext">OrdinaryFunction -&gt; VoidMark
+</span><a href="Analyzer.AnalyzedAst.html#%24sel%3AfuncVoidMark%3AOrdinaryFunction"><span class="hs-identifier hs-var hs-var">funcVoidMark</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Analyzer.AnalyzedAst.html#VoidMark"><span class="hs-identifier hs-type">VoidMark</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165302"><span id="local-6989586621679165304"><span id="local-6989586621679165312"><span class="annot"><span class="annottext">Int -&gt; OrdinaryFunction -&gt; ShowS
+[OrdinaryFunction] -&gt; ShowS
+OrdinaryFunction -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [OrdinaryFunction] -&gt; ShowS
+$cshowList :: [OrdinaryFunction] -&gt; ShowS
+show :: OrdinaryFunction -&gt; String
+$cshow :: OrdinaryFunction -&gt; String
+showsPrec :: Int -&gt; OrdinaryFunction -&gt; ShowS
+$cshowsPrec :: Int -&gt; OrdinaryFunction -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span class="hs-keyword">data</span><span> </span><span id="VoidMark"><span class="annot"><a href="Analyzer.AnalyzedAst.html#VoidMark"><span class="hs-identifier hs-var">VoidMark</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="VoidFunc"><span class="annot"><a href="Analyzer.AnalyzedAst.html#VoidFunc"><span class="hs-identifier hs-var">VoidFunc</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="NonVoidFunc"><span class="annot"><a href="Analyzer.AnalyzedAst.html#NonVoidFunc"><span class="hs-identifier hs-var">NonVoidFunc</span></a></span></span><span>
+</span><span id="line-112"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679165294"><span id="local-6989586621679165296"><span id="local-6989586621679165298"><span class="annot"><span class="annottext">Int -&gt; VoidMark -&gt; ShowS
+[VoidMark] -&gt; ShowS
+VoidMark -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [VoidMark] -&gt; ShowS
+$cshowList :: [VoidMark] -&gt; ShowS
+show :: VoidMark -&gt; String
+$cshow :: VoidMark -&gt; String
+showsPrec :: Int -&gt; VoidMark -&gt; ShowS
+$cshowsPrec :: Int -&gt; VoidMark -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span class="hs-keyword">type</span><span> </span><span id="Identifier"><span class="annot"><a href="Analyzer.AnalyzedAst.html#Identifier"><span class="hs-identifier hs-var">Identifier</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-115"></span></pre></body></html>
