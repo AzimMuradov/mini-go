@@ -1,1 +1,0 @@
-# fp2022-haskell
