@@ -46,16 +46,16 @@ getRunner m = case m of
   Debug -> debug
 
 interpretAndShow :: String -> String
-interpretAndShow fileText = fromEither (interpreterResultMapper' fileText (\(out, err) -> unpack out ++ maybe "" ((++ "\n") . unpack) err))
+interpretAndShow fileText = fromEither (interpreterResultMapper' fileText (\(out, err) -> unpack $ out <> maybe mempty (<> pack "\n") err))
 
 analyzeAndShow :: String -> String
-analyzeAndShow fileText = fromEither (analyzerResultMapper' fileText ((++ "\n") . show))
+analyzeAndShow fileText = fromEither (analyzerResultMapper' fileText ((<> "\n") . show))
 
 parseAndShow :: String -> String
 parseAndShow = parseResultMsg
 
 debug :: String -> String
-debug fileText = parseResultMsg fileText ++ "\n" ++ analyzerResultMsg fileText ++ "\n" ++ interpreterResultMsg fileText
+debug fileText = parseResultMsg fileText <> "\n" <> analyzerResultMsg fileText <> "\n" <> interpreterResultMsg fileText
 
 -- ** Utils
 
@@ -71,7 +71,7 @@ interpreterResultMapper' :: String -> ((Text, Maybe Text) -> a) -> Either String
 interpreterResultMapper' fileText f = f <$> interpreterResultMapper fileText getInterpretationOut
 
 interpreterResultMsg :: String -> String
-interpreterResultMsg fileText = fromEither (interpreterResultMapper fileText ((++ "\n") . show))
+interpreterResultMsg fileText = fromEither (interpreterResultMapper fileText ((<> "\n") . show))
 
 -- *** Analyzer
 
@@ -82,10 +82,10 @@ analyzerResultMapper :: String -> ((AResult.ResultValue AAst.Program, AResult.En
 analyzerResultMapper fileText f = f <$> analyzerResult fileText
 
 analyzerResultMapper' :: String -> (AAst.Program -> a) -> Either String a
-analyzerResultMapper' fileText f = analyzerResultMapper fileText fst >>= (fmap f . mapLeft ((++ "\n") . show))
+analyzerResultMapper' fileText f = analyzerResultMapper fileText fst >>= (fmap f . mapLeft ((<> "\n") . show))
 
 analyzerResultMsg :: String -> String
-analyzerResultMsg fileText = fromEither (analyzerResultMapper fileText ((++ "\n") . show))
+analyzerResultMsg fileText = fromEither (analyzerResultMapper fileText ((<> "\n") . show))
 
 -- *** Parser
 
@@ -96,7 +96,7 @@ parseResultMapper :: String -> (Ast.Program -> a) -> Either String a
 parseResultMapper fileText f = f <$> maybeToEither "parse failed\n" (parseResult fileText)
 
 parseResultMsg :: String -> String
-parseResultMsg fileText = fromEither (parseResultMapper fileText ((++ "\n") . show))
+parseResultMsg fileText = fromEither (parseResultMapper fileText ((<> "\n") . show))
 
 -- * Command line options parsing
 
